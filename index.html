@@ -101,7 +101,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v10</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v11</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -862,7 +862,10 @@ $('#logoIn').addEventListener('change', e=>{
 /* ---------- 輸出 ---------- */
 const toBlob = c => new Promise(r=>c.toBlob(r,'image/jpeg',S.quality));
 async function exportBlob(p){
-  let sc = 1; const area = p.w*p.h; if (area > 40e6) sc = Math.sqrt(40e6/area);
+  /* iPhone / iPad 的畫布上限約 1600 萬像素，超過會輸出失敗 */
+  const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const MAX = IOS ? 16e6 : 40e6;
+  let sc = 1; const area = p.w*p.h*1.25; if (area > MAX) sc = Math.sqrt(MAX/area);
   let blob = await toBlob(compose(p, sc));
   if (!blob) blob = await toBlob(compose(p, sc*0.6));
   return blob;

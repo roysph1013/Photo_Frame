@@ -1,7 +1,7 @@
 /* 參數相框 離線快取
    - 主程式：先抓網路（拿到最新版），沒網路才用快取
    - 字體與圖示：先用快取，背景更新 */
-const CACHE = 'photo-frame-v9';
+const CACHE = 'photo-frame-v10';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

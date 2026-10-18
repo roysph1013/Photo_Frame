@@ -43,6 +43,7 @@ button,input{font:inherit;color:inherit}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb.on{border-color:var(--accent)}
 .panel{background:var(--surface);border-top:1px solid var(--line);min-height:150px;max-height:42vh;overflow-y:auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+.panel>*{flex-shrink:0}
 .tabs{display:flex;gap:4px;overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);padding-block:4px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:0 0 auto;background:none;border:0;padding:12px 12px;font-size:15px;color:var(--muted);cursor:pointer}
@@ -78,6 +79,9 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
 .lg.none,.lg.add{background:var(--surface2);color:var(--muted);font:400 12px var(--ui)}
 .lg.add{font-size:24px}
 .acts{display:flex;flex-wrap:wrap;gap:8px}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:-4px}
+.gear{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.gear.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
 .fonts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .fontbtn{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
 .fontbtn b{font-size:17px;font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -97,7 +101,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v9</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v10</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -290,48 +294,24 @@ function initSample(){
 /* ---------- 繪圖工具 ---------- */
 /* 字體：[名稱, 說明, Google Fonts 參數]；分組顯示 */
 const FONT_GROUPS = [
-  ['無襯線・現代', [
+  ['無襯線', [
     ['Inter','Helvetica 風・中性俐落','wght@300..800'],
     ['Roboto','Android 標準・易讀','ital,wght@0,300;0,400;0,500;0,700;1,500'],
     ['Montserrat','Gotham 風・幾何','ital,wght@0,300..800;1,300..800'],
     ['Jost','Futura 風・幾何','ital,wght@0,300..800;1,300..800'],
     ['Poppins','幾何・圓潤','ital,wght@0,300;0,400;0,500;0,600;0,700;1,500;1,600'],
-    ['DM Sans','幾何・低調','ital,wght@0,300..800;1,300..800'],
-    ['Manrope','現代・科技感','wght@300..800'],
-    ['Outfit','幾何・時尚','wght@300..800'],
-    ['Work Sans','簡潔・工整','ital,wght@0,300..800;1,300..800'],
-    ['Open Sans','人文・溫和','ital,wght@0,300..800;1,300..800'],
     ['Lato','人文・優雅','ital,wght@0,300;0,400;0,700;1,400;1,700'],
-    ['Raleway','細緻・時尚','ital,wght@0,300..800;1,300..800'],
-    ['Josefin Sans','復古幾何','ital,wght@0,300..700;1,300..700'],
-    ['IBM Plex Sans','工業・精密','ital,wght@0,300;0,400;0,500;0,600;0,700;1,500'],
-    ['Space Grotesk','個性・科技','wght@300..700'],
-    ['Archivo','穩重・新聞','ital,wght@0,300..800;1,300..800']
-  ]],
-  ['窄體・儀表', [
     ['Barlow','DIN 風・相機面板','ital,wght@0,300;0,400;0,500;0,600;0,700;1,500;1,600'],
-    ['Barlow Condensed','DIN 窄體','ital,wght@0,300;0,400;0,500;0,600;0,700;1,500;1,600'],
     ['Oswald','窄體・醒目','wght@300..700']
   ]],
-  ['襯線・經典', [
+  ['襯線', [
     ['Playfair Display','高對比・雜誌','ital,wght@0,400..800;1,400..800'],
-    ['Bodoni Moda','Bodoni・時尚','ital,wght@0,400..800;1,400..800'],
-    ['Cormorant Garamond','Garamond・典雅','ital,wght@0,400;0,500;0,600;0,700;1,500;1,600'],
-    ['EB Garamond','Garamond・書卷','ital,wght@0,400..800;1,400..800'],
-    ['Libre Baskerville','Baskerville・正式','ital,wght@0,400;0,700;1,400'],
-    ['Lora','溫潤・易讀','ital,wght@0,400..700;1,400..700'],
-    ['Merriweather','厚實・穩重','ital,wght@0,300;0,400;0,700;1,400'],
-    ['Cinzel','羅馬刻字・大寫','wght@400..800']
+    ['EB Garamond','Garamond・典雅','ital,wght@0,400..800;1,400..800']
   ]],
-  ['等寬・數據', [
-    ['JetBrains Mono','等寬・清晰','ital,wght@0,300..800;1,300..800'],
-    ['IBM Plex Mono','等寬・工業','ital,wght@0,300;0,400;0,500;0,600;0,700;1,500'],
-    ['Roboto Mono','等寬・中性','ital,wght@0,300..700;1,300..700'],
-    ['Space Mono','等寬・復古','ital,wght@0,400;0,700;1,400;1,700']
-  ]],
-  ['系統內建', [
-    ['system','手機系統字體',''],
-    ['Helvetica','Helvetica / Arial','']
+  ['其他', [
+    ['JetBrains Mono','等寬・數據感','ital,wght@0,300..800;1,300..800'],
+    ['Helvetica','Helvetica / Arial',''],
+    ['system','手機系統字體','']
   ]]
 ];
 const FONT_SPEC = {}; FONT_GROUPS.forEach(([,list])=>list.forEach(([n,,spec])=>FONT_SPEC[n]=spec));
@@ -627,7 +607,8 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-let tab = 'tpl';
+let tab = 'tpl', logoOpts = false;
+const GEAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const chips = (name, opts, curv, num) => `<div class="chips">${opts.map(([v,l])=>`<button type="button" class="chip${String(curv)===String(v)?' on':''}" data-set="${name}" data-val="${v}"${num?' data-num="1"':''}>${l}</button>`).join('')}</div>`;
 const sw = k => `<button type="button" class="sw" data-show="${k}" aria-pressed="${!!S.show[k]}" aria-label="顯示"></button>`;
@@ -673,7 +654,8 @@ function renderPanel(){
         .concat(BRANDS.concat(customs).map(b=>`<button type="button" class="lg${p.brandKey===b.key?' on':''}" data-brand="${b.key}">${logoData[b.key]?`<img src="${logoData[b.key]}" alt="${esc(b.name)}">`:BUILTIN[b.key]?`<img src="${BUILTIN[b.key].light}" alt="${esc(b.name)}">`:esc(b.name)}</button>`))
         .concat([`<button type="button" class="lg add" data-act="addCustom" aria-label="新增自訂 Logo">＋</button>`]);
       const nm = brandName(p.brandKey);
-      h = `<div class="logos">${tiles.join('')}</div>`;
+      h = `<div class="head"><span class="label">選擇 Logo</span><button type="button" class="gear${logoOpts?' on':''}" data-act="logoOpts" aria-expanded="${logoOpts}" aria-label="Logo 設定">${GEAR}</button></div><div class="logos">${tiles.join('')}</div>`;
+      if (!logoOpts) break;
       if (BUILTIN[p.brandKey] && !logoData[p.brandKey]) h += `<div class="label">Logo 顏色</div>` + chips('logoColor', [['auto','自動（依邊框）'],['black','黑色'],['white','白色']], S.logoColor);
       if (p.brandKey !== 'none') h += `<div class="acts"><button type="button" class="btn ghost" data-act="uploadLogo">替 ${esc(nm)} 上傳 Logo 圖</button>${logoData[p.brandKey]?`<button type="button" class="btn ghost" data-act="removeLogo">${customs.some(c=>c.key===p.brandKey)?'刪除這個 Logo':BUILTIN[p.brandKey]?'改回內建 Logo':'改回文字'}</button>`:''}</div>`;
       h += `<p class="hint">上傳透明背景的 PNG 或 SVG 效果最好，會存在這台裝置的瀏覽器裡。深色邊框請上傳白色版本。可到品牌官網的媒體資料區或 Wikimedia Commons 下載。</p>`;
@@ -753,6 +735,7 @@ panel.addEventListener('click', async e=>{
   if (t.dataset.toggle){ const k=t.dataset.toggle; S[k]=!S[k]; t.setAttribute('aria-pressed', S[k]); save(); render(); return; }
   if (t.dataset.brand){ p.brandKey = t.dataset.brand; renderPanel(); render(); return; }
   const act = t.dataset.act;
+  if (act === 'logoOpts'){ logoOpts = !logoOpts; renderPanel(); return; }
   if (act === 'uploadLogo'){ logoTarget = p.brandKey; $('#logoIn').click(); }
   else if (act === 'addCustom'){ logoTarget = 'new'; $('#logoIn').click(); }
   else if (act === 'removeLogo'){

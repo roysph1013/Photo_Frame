@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>參數相框</title>
+<meta name="theme-color" content="#0c0d0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="參數相框">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link id="font-Jost" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
@@ -90,7 +97,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v7</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v8</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -990,6 +997,11 @@ function loadFontPreviews(){
   refreshAll();
 })();
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>

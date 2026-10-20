@@ -101,7 +101,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v11</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v12</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -152,8 +152,8 @@ const DEF = {
   tpl:'bar4', ratio:'orig', bg:'#ffffff', border:5, barScale:1, radius:0, shadow:false,
   textScale:1, photoScale:1, font:'Jost', weight:'regular', quality:0.92, focalMode:'actual', dateFmt:'full',
   offX:0, offY:0, padScale:1, lineGap:1, gapScale:1, logoScale:1,
-  author:'', authorPrefix:'by', logoColor:'auto',
-  show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true}
+  author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
+  show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true,quote:true}
 };
 let S = JSON.parse(JSON.stringify(DEF));
 try { const saved = JSON.parse(localStorage.getItem('exif-frame-settings')||'null'); if (saved) { S = Object.assign(S, saved); S.show = Object.assign({}, DEF.show, saved.show||{}); } } catch(e){}
@@ -356,13 +356,13 @@ function divRow(segs, l, lineColor){
   }};
 }
 let LOGO_MAXW = Infinity;
-function logoInfo(p, h){
+function logoInfo(p, h, onDark){
   const none = { w:0, h:0, draw(){} };
   if (!S.show.logo || !p.brandKey || p.brandKey==='none') return none;
   h *= S.logoScale;
   const maxW = LOGO_MAXW * Math.max(1, S.logoScale);
   const bi = builtinImgs[p.brandKey];
-  const useWhite = S.logoColor === 'white' || (S.logoColor !== 'black' && colors().c1 === '#ffffff');
+  const useWhite = S.logoColor === 'white' || (S.logoColor !== 'black' && (onDark ?? colors().c1 === '#ffffff'));
   const img = logoImgs[p.brandKey] || (bi && (useWhite ? bi.dark : bi.light));
   if (img){
     const nw = img.naturalWidth || 300, nh = img.naturalHeight || 100;
@@ -556,6 +556,173 @@ const TPL = {
     return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+b), info(ctx,ox,oy){ col.draw(ctx, ox+W/2, oy+b+h+bh/2); } };
   }}
 };
+/* ---------- 新版型（v12）：疊加、頂部標題、月曆、側欄表格等 ---------- */
+const OV = { bg:'#000000', border:0, radius:0, shadow:false };
+const WHITE = { c1:'#ffffff', c2:'rgba(255,255,255,.8)', ln:'rgba(255,255,255,.6)' };
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function glow(ctx, s){ ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=s*0.012; ctx.shadowOffsetY=s*0.002; }
+function txt(ctx, l, x, y, align){ if (!l.t) return; font(ctx,l); ctx.fillStyle=l.color; ctx.textAlign=align||'left'; ctx.textBaseline='middle'; ctx.fillText(l.t,x,y); }
+function fit(l, maxW){ if (l.t){ const m = measure(l); if (m > maxW) l.size *= maxW/m; } return l; }
+function monthYear(p){ const m = String(p.data.date||'').match(/(\d{4})\D(\d{1,2})/); return m ? [MONTHS[+m[2]-1]||'', m[1]] : ['','']; }
+const slashParams = V => ['focal','fnum','shutter','iso'].map(k=>V[k]).filter(Boolean).join(' / ');
+
+Object.assign(TPL, {
+  ovCorner: { name:'疊加左下', frame:false, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, G=S.gapScale, pad=s*0.045*S.padScale;
+    const logo = logoInfo(p, s*0.05*T, true);
+    const st = stack([
+      {t:[V.author, V.date].filter(Boolean).join(' '), size:s*0.024*T, weight:500, color:C.c1},
+      {t:[V.model, V.params()].filter(Boolean).join(' '), size:s*0.02*T, color:C.c1}], 0.5);
+    return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){
+      ctx.save(); glow(ctx,s);
+      const cy = oy + h - pad - Math.max(st.h, logo.h)/2;
+      let x = ox + pad;
+      logo.draw(ctx, x, cy, C.c1);
+      if (logo.w){ x += logo.w + s*0.025*G; if (st.w){ ctx.fillStyle=C.ln; ctx.fillRect(x, cy-s*0.03, Math.max(1,s*0.002), s*0.06); x += s*0.025*G; } }
+      st.draw(ctx, x, cy, 'left');
+      ctx.restore();
+    }};
+  }},
+  ovTopBottom: { name:'疊加上下', frame:false, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.06*S.padScale;
+    const logo = logoInfo(p, s*0.07*T, true);
+    const foot = V.author ? V.author + (S.authorPrefix === '©' ? ' all rights reserved' : '') : V.params();
+    const fl = fit({t:foot, size:s*0.024*T, weight:600, color:C.c1}, w*0.9);
+    return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){
+      ctx.save(); glow(ctx,s);
+      if (logo.w) logo.draw(ctx, ox+w/2-logo.w/2, oy+pad+logo.h/2, C.c1);
+      txt(ctx, fl, ox+w/2, oy+h-pad, 'center');
+      ctx.restore();
+    }};
+  }},
+  ovCenter: { name:'疊加置中', frame:false, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale;
+    const logo = logoInfo(p, s*0.08*T, true);
+    const col = vcol([
+      logoItem(logo, C.c1),
+      tline({t:V.modelLine ? 'Shot on '+V.modelLine : '', size:s*0.03*T, color:C.c1}),
+      tline({t:V.author, size:s*0.022*T, color:C.c2}),
+      tline({t:V.params(), size:s*0.02*T, color:C.c2})], s*0.012);
+    return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){ ctx.save(); glow(ctx,s); col.draw(ctx, ox+w/2, oy+h/2); ctx.restore(); } };
+  }},
+  ovMid: { name:'疊加橫排', frame:false, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.04*S.padScale;
+    const L = stack([{t:V.params(), size:s*0.026*T, weight:500, color:C.c1}, {t:V.modelLine, size:s*0.019*T, color:C.c2}], 0.35);
+    const R = stack([{t:V.author, size:s*0.026*T, weight:700, color:C.c1}, {t:[V.location,V.date].filter(Boolean).join(' '), size:s*0.019*T, color:C.c2}], 0.35);
+    return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){
+      ctx.save(); glow(ctx,s);
+      const cy = oy + h*0.62;
+      L.draw(ctx, ox+pad, cy, 'left'); R.draw(ctx, ox+w-pad, cy, 'right');
+      ctx.restore();
+    }};
+  }},
+  ov3col: { name:'疊加三欄', frame:false, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.04*S.padScale, fs=s*0.022*T;
+    const mid = stack([{t:V.author.toUpperCase(), size:fs*1.05, weight:700, color:C.c1}, {t:V.params(), size:fs, color:C.c1}], 0.5);
+    return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){
+      ctx.save(); glow(ctx,s);
+      const cy = oy + h - pad - Math.max(mid.h, fs)/2, by = cy + Math.max(0, mid.h/2 - fs/2);
+      mid.draw(ctx, ox+w/2, cy, 'center');
+      txt(ctx, {t:V.modelLine, size:fs, color:C.c1}, ox+pad, by, 'left');
+      txt(ctx, {t:V.date || V.location, size:fs, color:C.c1}, ox+w-pad, by, 'right');
+      ctx.restore();
+    }};
+  }},
+  ovItalic: { name:'疊加斜體', frame:true, defaults:{ bg:'#fbf9f4', border:2, radius:0, shadow:false }, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, b=s*S.border/100, pad=s*0.05*S.padScale;
+    const logo = logoInfo(p, s*0.065*T, true);
+    const col = vcol([
+      tline({t:[V.location,V.date,V.author].filter(Boolean).join(' '), size:s*0.02*T, italic:true, color:C.c2}),
+      tline({t:V.params(), size:s*0.03*T, weight:600, italic:true, color:C.c1})], s*0.015);
+    const W=w+2*b, H=h+2*b;
+    return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+b), info(ctx,ox,oy){
+      ctx.save(); glow(ctx,s);
+      if (logo.w) logo.draw(ctx, ox+W/2-logo.w/2, oy+b+pad+logo.h/2, C.c1);
+      col.draw(ctx, ox+W/2, oy+b+h-pad-col.H/2);
+      ctx.restore();
+    }};
+  }},
+  headerTop: { name:'頂部標題', frame:true, defaults:{ bg:'#ffffff', border:3, radius:0, shadow:false }, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, b=s*S.border/100, bh=s*0.32*S.barScale;
+    const logo = logoInfo(p, bh*0.24*T);
+    const col = vcol([
+      logoItem(logo, C.c1),
+      tline({t:V.modelLine, size:bh*0.075*T, color:C.c1}),
+      tline(fit({t:slashParams(V), size:bh*0.085*T, weight:500, color:C.c1}, w*0.92)),
+      tline({t:V.author || [V.location,V.date].filter(Boolean).join(' '), size:bh*0.08*T, weight:600, color:C.c1})], bh*0.07);
+    const W=w+2*b, H=bh+h+b;
+    return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+bh), info(ctx,ox,oy){ col.draw(ctx, ox+W/2, oy+bh/2); } };
+  }},
+  calendar: { name:'月曆', frame:false, defaults:BAR, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, bh=s*0.36*S.barScale, pad=bh*0.16*S.padScale;
+    const [mon, yr] = S.show.date ? monthYear(p) : ['',''];
+    const top = stack([{t:mon, size:bh*0.2*T, weight:400, color:C.c1}, {t:yr, size:bh*0.11*T, weight:500, color:'#d0302b'}], 0.25);
+    const logo = logoInfo(p, bh*0.24*T);
+    const R = stack([
+      {t:V.params(), size:bh*0.1*T, weight:500, color:C.c1},
+      {t:V.modelLine, size:bh*0.08*T, color:C.c1},
+      {t:V.location, size:bh*0.08*T, color:C.c1},
+      {t:V.author, size:bh*0.08*T, color:C.c1}], 0.4);
+    return { W:w, H:h+bh, photo:imgOnly(P), info(ctx,ox,oy){
+      const y0 = oy+h, gap = bh*0.1*S.gapScale;
+      const LH = top.h + (top.h && logo.h ? gap : 0) + logo.h;
+      let y = y0 + bh/2 - LH/2;
+      if (top.h){ top.draw(ctx, ox+pad, y+top.h/2, 'left'); y += top.h + gap; }
+      if (logo.h) logo.draw(ctx, ox+pad, y+logo.h/2, C.c1);
+      R.draw(ctx, ox+w-pad, y0+bh/2, 'right');
+    }};
+  }},
+  quoteBar: { name:'灰條引言', frame:false, defaults:{ bg:'#5b5b5b', border:0, radius:0, shadow:false }, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, bh=s*0.32*S.barScale;
+    const logo = logoInfo(p, bh*0.17*T);
+    const q = S.show.quote && S.quote ? '“' + S.quote + '”' : '';
+    const col = vcol([
+      logoItem(logo, C.c1),
+      tline({t:V.modelLine, size:bh*0.07*T, color:C.c2}),
+      tline({t:V.author || V.params(), size:bh*0.075*T, weight:500, color:C.c1}),
+      tline(fit({t:q, size:bh*0.055*T, italic:true, color:C.c2}, w*0.9)),
+      tline({t:S.show.quote && S.quote && S.quoteBy ? '– ' + S.quoteBy : '', size:bh*0.05*T, color:C.c2})], bh*0.05);
+    return { W:w, H:h+bh, photo:imgOnly(P), info(ctx,ox,oy){ col.draw(ctx, ox+w/2, oy+h+bh/2); } };
+  }},
+  textOnly: { name:'純文字', frame:false, defaults:BAR, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, bh=s*0.11*S.barScale;
+    let [a, b2] = lines2(V, ['author','location','date']);
+    if (!a){ a = V.modelLine; b2 = V.params(); }
+    const col = vcol([tline({t:a, size:bh*0.2*T, weight:600, color:C.c1}), tline({t:b2, size:bh*0.16*T, color:C.c1})], bh*0.1);
+    return { W:w, H:h+bh, photo:imgOnly(P), info(ctx,ox,oy){ col.draw(ctx, ox+w/2, oy+h+bh/2); } };
+  }},
+  sidePanel: { name:'側欄表格', frame:true, defaults:{ bg:'#ffffff', border:1.5, radius:0, shadow:false }, layout(p,P){
+    const {w,h,s}=P, C=colors(), T=S.textScale, b=s*S.border/100, pw=s*0.55*S.barScale;
+    const fs=pw*0.065*T, rh=fs*1.75*S.lineGap, gp=fs*0.9;
+    const d=p.data, sh=S.show, g=k=>sh[k]&&d[k]?d[k]:'';
+    const groups = [
+      [['TakenAt',g('date')],['Location',g('location')]],
+      [['Focal',g('focal')],['Aperture',g('fnum')],['Shutter',g('shutter')],['ISO',g('iso').replace(/^ISO\s*/i,'')]],
+      [['PhotoBy', sh.author && S.author ? S.author : '']],
+      [['ShotOn',g('model')]]
+    ].map(gr=>gr.filter(r=>r[1])).filter(gr=>gr.length);
+    const logo = logoInfo(p, pw*0.13*T);
+    const tableH = groups.reduce((a,gr)=>a+gr.length*rh+gp, 0);
+    const W=b+w+pw, H=h+2*b;
+    return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+b), info(ctx,ox,oy){
+      const px=ox+b+w, cx=px+pw*0.42, lg=fs*2.5*S.gapScale;
+      const total = tableH + (logo.h ? lg + logo.h : 0);
+      let y = oy + H*0.6 - total/2; if (y + total > oy+H-b) y = oy+H-b-total; if (y < oy+b) y = oy+b;
+      const lineL=px+pw*0.08, lineR=px+pw*0.92;
+      groups.forEach(gr=>{
+        gr.forEach(([k,v])=>{
+          const cy=y+rh/2;
+          txt(ctx, {t:k, size:fs, color:C.c2}, cx-fs*0.5, cy, 'right');
+          txt(ctx, fit({t:v, size:fs, color:C.c1}, lineR-(cx+fs*0.5)), cx+fs*0.5, cy, 'left');
+          y += rh;
+        });
+        y += gp/2; ctx.fillStyle=C.ln; ctx.fillRect(lineL, y, lineR-lineL, Math.max(1,fs*0.06)); y += gp/2;
+      });
+      if (logo.h){ y += lg; logo.draw(ctx, px+pw/2-logo.w/2, y+logo.h/2, C.c1); }
+    }};
+  }}
+});
+
 const RATIOS = { orig:0, '1:1':1, '4:5':0.8, '3:4':0.75, '9:16':9/16, '2:3':2/3, '3:2':1.5, '16:9':16/9 };
 
 function compose(p, scale){
@@ -674,8 +841,10 @@ function renderPanel(){
       h = field('location','地點','例如 河內, 越南') + (photos.length>1?`<div class="acts"><button type="button" class="btn ghost" data-act="locAll">套用到全部照片</button></div>`:'');
       break;
     case 'author':
-      h = `<div class="row"><label for="authorIn">署名</label><input type="text" id="authorIn" value="${esc(S.author)}" placeholder="你的名字">${sw('author')}</div><div class="label">前綴</div>` + chips('authorPrefix', [['by','by'],['©','©'],['','無']], S.authorPrefix)
-        + `<p class="hint">署名套用到所有照片，並會記住。</p>`;
+      h = `<div class="row"><label for="authorIn">署名</label><input type="text" id="authorIn" value="${esc(S.author)}" placeholder="你的名字">${sw('author')}</div><div class="label">前綴</div>` + chips('authorPrefix', [['by','by'],['Photo by','Photo by'],['©','©'],['','無']], S.authorPrefix)
+        + `<div class="row"><label for="quoteIn">引言</label><input type="text" id="quoteIn" value="${esc(S.quote)}" placeholder="灰條引言版型使用">${sw('quote')}</div>`
+        + `<div class="row"><label for="quoteByIn">出處</label><input type="text" id="quoteByIn" value="${esc(S.quoteBy)}" placeholder="引言作者"></div>`
+        + `<p class="hint">署名與引言套用到所有照片，並會記住。</p>`;
       break;
     case 'font':
       h = `<div class="label">粗細</div>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight)
@@ -758,6 +927,8 @@ panel.addEventListener('input', e=>{
   else if (t.dataset.prange){ const k=t.dataset.prange; cur()[k] = +t.value; $('#pv_'+k).textContent = fmtP(k); render(); }
   else if (t.dataset.range){ const k=t.dataset.range; S[k] = +t.value; $('#v_'+k).textContent = fmtVal(k); save(); render(); }
   else if (t.id === 'authorIn'){ S.author = t.value; save(); render(); }
+  else if (t.id === 'quoteIn'){ S.quote = t.value; save(); render(); }
+  else if (t.id === 'quoteByIn'){ S.quoteBy = t.value; save(); render(); }
   else if (t.id === 'bgColor'){ S.bg = t.value; save(); panel.querySelectorAll('.swatch').forEach(x=>x.classList.remove('on')); t.classList.add('on'); render(); }
 });
 

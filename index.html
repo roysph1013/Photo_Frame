@@ -42,6 +42,15 @@ button,input{font:inherit;color:inherit}
 .thumb{position:relative;flex:0 0 auto;width:52px;height:52px;border-radius:8px;overflow:hidden;border:2px solid transparent;padding:0;background:var(--surface2);cursor:pointer}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb.on{border-color:var(--accent)}
+.thumbw{position:relative;flex:0 0 auto;padding:6px 6px 0 0}
+.tdel{position:absolute;top:0;right:0;width:22px;height:22px;border-radius:50%;border:2px solid var(--bg);background:#3a3d42;color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.adjs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.adjs::-webkit-scrollbar{display:none}
+.adjchip{flex:0 0 auto;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;display:flex;gap:4px;align-items:center;white-space:nowrap}
+.adjchip i{font-style:normal;font-size:11px;color:var(--accent);font-variant-numeric:tabular-nums}
+.adjchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.adjchip.on i{color:var(--accent-ink)}
+.btn.sm{padding:7px 14px;font-size:13px}
 .panel{background:var(--surface);border-top:1px solid var(--line);min-height:150px;max-height:42vh;overflow-y:auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 .panel>*{flex-shrink:0}
 .tabs{display:flex;gap:4px;overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);padding-block:4px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));scrollbar-width:none}
@@ -110,7 +119,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v13</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v14</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -162,7 +171,7 @@ const DEF = {
   tpl:'bar4', ratio:'orig', bg:'#ffffff', border:5, barScale:1, radius:0, shadow:false,
   textScale:1, photoScale:1, font:'Jost', weight:'regular', quality:0.92, focalMode:'actual', dateFmt:'full',
   offX:0, offY:0, padScale:1, lineGap:1, gapScale:1, logoScale:1,
-  favs:[], author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
+  textShadow:true, favs:[], author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
   show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true,quote:true}
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -570,7 +579,7 @@ const TPL = {
 const OV = { bg:'#000000', border:0, radius:0, shadow:false };
 const WHITE = { c1:'#ffffff', c2:'rgba(255,255,255,.8)', ln:'rgba(255,255,255,.6)' };
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-function glow(ctx, s){ ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=s*0.012; ctx.shadowOffsetY=s*0.002; }
+function glow(ctx, s){ if (S.textShadow === false) return; ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=s*0.012; ctx.shadowOffsetY=s*0.002; }
 function txt(ctx, l, x, y, align){ if (!l.t) return; font(ctx,l); ctx.fillStyle=l.color; ctx.textAlign=align||'left'; ctx.textBaseline='middle'; ctx.fillText(l.t,x,y); }
 function fit(l, maxW){ if (l.t){ const m = measure(l); if (m > maxW) l.size *= maxW/m; } return l; }
 function monthYear(p){ const m = String(p.data.date||'').match(/(\d{4})\D(\d{1,2})/); return m ? [MONTHS[+m[2]-1]||'', m[1]] : ['','']; }
@@ -738,7 +747,7 @@ const ADJ = [
   ['exposure','曝光'],['brightness','亮度'],['contrast','對比'],['highlights','亮部'],['shadows','陰影'],
   ['saturation','飽和度'],['vibrance','自然飽和'],['warmth','色溫'],['tint','色調'],['vignette','暗角']
 ];
-let showOrig = false;
+let showOrig = false, adjKey = 'exposure';
 const adjOf = p => p.adj || (p.adj = {});
 const adjActive = p => !showOrig && p.adj && ADJ.some(([k]) => p.adj[k]);
 function processImage(p, scale){
@@ -859,7 +868,7 @@ function renderTabs(){
 function renderStrip(){
   const st = $('#strip');
   st.hidden = photos.length < 2;
-  st.innerHTML = photos.map((p,i)=>`<button type="button" class="thumb${i===idx?' on':''}" data-photo="${i}" aria-label="第 ${i+1} 張"><img src="${p.thumb}" alt=""></button>`).join('');
+  st.innerHTML = photos.map((p,i)=>`<div class="thumbw"><button type="button" class="thumb${i===idx?' on':''}" data-photo="${i}" aria-label="第 ${i+1} 張"><img src="${p.thumb}" alt=""></button><button type="button" class="tdel" data-del="${i}" aria-label="移除第 ${i+1} 張">×</button></div>`).join('');
 }
 function renderPanel(){
   const p = cur(), el = $('#panel');
@@ -872,9 +881,10 @@ function renderPanel(){
           + `<p class="hint">點縮圖右上角的星號加入最愛，最愛的版型會排在最前面。</p>`; }
       break;
     case 'adj':
-      h = ADJ.map(([k,l])=>`<div class="row"><label for="a_${k}">${l}</label><input type="range" id="a_${k}" data-adj="${k}" min="-100" max="100" step="1" value="${adjOf(p)[k]||0}"><span class="val" id="av_${k}">${fmtA(adjOf(p)[k])}</span></div>`).join('')
-        + `<div class="acts"><button type="button" class="btn ghost" data-act="resetAdj">重設調色</button>${photos.length>1?'<button type="button" class="btn ghost" data-act="adjAll">套用到全部照片</button>':''}</div>`
-        + `<p class="hint">按住上方預覽圖可以對照原圖。調色只套用在這張照片，輸出時以原始解析度處理。</p>`;
+      { const a = adjOf(p), cur_ = ADJ.find(x=>x[0]===adjKey) || ADJ[0];
+        h = `<div class="adjs">${ADJ.map(([k,l])=>`<button type="button" class="adjchip${k===cur_[0]?' on':''}${a[k]?' set':''}" data-adjkey="${k}">${l}<i>${a[k]?fmtA(a[k]):''}</i></button>`).join('')}</div>`
+          + `<div class="row"><label for="a_${cur_[0]}">${cur_[1]}</label><input type="range" id="a_${cur_[0]}" data-adj="${cur_[0]}" min="-100" max="100" step="1" value="${a[cur_[0]]||0}"><span class="val" id="av_${cur_[0]}">${fmtA(a[cur_[0]])}</span></div>`
+          + `<div class="acts"><button type="button" class="btn ghost sm" data-act="resetAdj">重設</button>${photos.length>1?'<button type="button" class="btn ghost sm" data-act="adjAll">套用到全部</button>':''}<span class="hint" style="align-self:center">按住預覽圖看原圖</span></div>`; }
       break;
     case 'ratio':
       h = `<div class="label">成品比例（外框與資訊區不變，照片自動裁切）</div>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio)
@@ -921,7 +931,8 @@ function renderPanel(){
         + `<p class="hint">署名與引言套用到所有照片，並會記住。</p>`;
       break;
     case 'font':
-      h = `<div class="label">粗細</div>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight)
+      h = `<div class="row"><label>文字陰影</label><span style="flex:1;font-size:12px;color:var(--muted)">疊在照片上的文字</span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`
+        + `<div class="label">粗細</div>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight)
         + slider('textScale','文字大小',0.6,1.6,0.05)
         + FONT_GROUPS.map(([g,list])=>`<div class="label">${g}</div><div class="fonts">${list.map(([n,note])=>`<button type="button" class="fontbtn${S.font===n?' on':''}" data-set="font" data-val="${esc(n)}"><b style="font-family:${esc(fam(n))}">${n==='system'?'System':esc(n)}</b><span>${esc(note)}</span></button>`).join('')}</div>`).join('');
       break;
@@ -941,6 +952,7 @@ function renderPanel(){
   el.innerHTML = h;
   if (tab === 'tpl') drawTplThumbs();
   if (tab === 'font') loadFontPreviews();
+  if (tab === 'adj'){ const on = el.querySelector('.adjchip.on'); if (on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); }
 }
 function drawTplThumbs(){
   const p = cur(); if (!p) return;
@@ -958,7 +970,16 @@ function refreshAll(){ renderTabs(); renderStrip(); renderPanel(); render(); }
 
 /* ---------- 事件 ---------- */
 $('#tabs').addEventListener('click', e=>{ const b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; renderTabs(); renderPanel(); });
-$('#strip').addEventListener('click', e=>{ const b=e.target.closest('[data-photo]'); if(!b) return; idx=+b.dataset.photo; renderStrip(); renderPanel(); render(); });
+$('#strip').addEventListener('click', e=>{
+  const dl = e.target.closest('[data-del]');
+  if (dl){
+    const i = +dl.dataset.del, gone = photos.splice(i, 1)[0];
+    if (gone && gone.thumb && gone.thumb.startsWith('blob:')) setTimeout(()=>URL.revokeObjectURL(gone.thumb), 1000);
+    if (!photos.length){ initSample(); }
+    else if (idx > i || idx >= photos.length) idx = Math.max(0, idx-1);
+    renderStrip(); renderPanel(); render(); return;
+  }
+  const b=e.target.closest('[data-photo]'); if(!b) return; idx=+b.dataset.photo; renderStrip(); renderPanel(); render(); });
 $('#fileIn').addEventListener('change', e=>{ const f=[...e.target.files]; e.target.value=''; if (f.length) addFiles(f); });
 
 const panel = $('#panel');
@@ -967,6 +988,7 @@ panel.addEventListener('click', async e=>{
   if (fv){ e.stopPropagation(); const k = fv.dataset.fav; S.favs = (S.favs||[]).filter(x=>TPL[x]); S.favs = S.favs.includes(k) ? S.favs.filter(x=>x!==k) : S.favs.concat(k); save(); renderPanel(); return; }
   const t = e.target.closest('button'); if (!t) return;
   const p = cur();
+  if (t.dataset.adjkey){ adjKey = t.dataset.adjkey; renderPanel(); return; }
   if (t.dataset.tpl){ S.tpl = t.dataset.tpl; Object.assign(S, TPL[S.tpl].defaults, {barScale:1}); save(); panel.querySelectorAll('.tpl').forEach(x=>x.classList.toggle('on', x===t)); render(); return; }
   if (t.dataset.set){
     const k = t.dataset.set; let v = t.dataset.val; if (t.dataset.num) v = +v;
@@ -1002,7 +1024,7 @@ panel.addEventListener('click', async e=>{
 panel.addEventListener('input', e=>{
   const t = e.target;
   if (t.dataset.field){ cur().data[t.dataset.field] = t.value; render(); }
-  else if (t.dataset.adj){ const k=t.dataset.adj; adjOf(cur())[k] = +t.value; $('#av_'+k).textContent = fmtA(t.value); render(); }
+  else if (t.dataset.adj){ const k=t.dataset.adj; adjOf(cur())[k] = +t.value; $('#av_'+k).textContent = fmtA(t.value); const c = panel.querySelector(`[data-adjkey="${k}"]`); if (c){ c.classList.toggle('set', !!+t.value); c.querySelector('i').textContent = +t.value ? fmtA(t.value) : ''; } render(); }
   else if (t.dataset.prange){ const k=t.dataset.prange; cur()[k] = +t.value; $('#pv_'+k).textContent = fmtP(k); render(); }
   else if (t.dataset.range){ const k=t.dataset.range; S[k] = +t.value; $('#v_'+k).textContent = fmtVal(k); save(); render(); }
   else if (t.id === 'authorIn'){ S.author = t.value; save(); render(); }

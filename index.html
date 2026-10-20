@@ -56,6 +56,15 @@ button,input{font:inherit;color:inherit}
 .tpl{flex:0 0 auto;width:92px;background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
 .tpl .box{width:92px;height:110px;border-radius:10px;background:#000;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tpl canvas{max-width:100%;max-height:100%;display:block}
+.tpl{position:relative}
+.star{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1}
+.star.on{color:#ffc24a}
+.handle{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:8px;height:26px;background:var(--surface);border:0;border-top:1px solid var(--line);color:var(--muted);cursor:pointer;padding:0}
+.handle .grip{width:36px;height:4px;border-radius:2px;background:var(--line)}
+.handle .chev{transition:transform .2s}
+#app.collapsed .handle .chev{transform:rotate(180deg)}
+#app.collapsed #panel,#app.collapsed #tabs,#app.collapsed #strip{display:none}
+#pv{-webkit-touch-callout:none;user-select:none;touch-action:manipulation}
 .tpl.on .box{border-color:var(--accent)}
 .tpl.on{color:var(--accent)}
 .row{display:flex;align-items:center;gap:10px}
@@ -101,7 +110,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v12</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v13</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -109,6 +118,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
     <span id="sampleTag" class="tag">範例照片・點「選照片」換成你的</span>
   </main>
   <div id="strip" class="strip" hidden></div>
+  <button type="button" id="handle" class="handle" aria-expanded="true" aria-label="收合工具列"><span class="grip"></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <section id="panel" class="panel"></section>
   <nav id="tabs" class="tabs"></nav>
 </div>
@@ -152,7 +162,7 @@ const DEF = {
   tpl:'bar4', ratio:'orig', bg:'#ffffff', border:5, barScale:1, radius:0, shadow:false,
   textScale:1, photoScale:1, font:'Jost', weight:'regular', quality:0.92, focalMode:'actual', dateFmt:'full',
   offX:0, offY:0, padScale:1, lineGap:1, gapScale:1, logoScale:1,
-  author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
+  favs:[], author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
   show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true,quote:true}
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -723,11 +733,66 @@ Object.assign(TPL, {
   }}
 });
 
+/* ---------- 調色（每張照片各自設定） ---------- */
+const ADJ = [
+  ['exposure','曝光'],['brightness','亮度'],['contrast','對比'],['highlights','亮部'],['shadows','陰影'],
+  ['saturation','飽和度'],['vibrance','自然飽和'],['warmth','色溫'],['tint','色調'],['vignette','暗角']
+];
+let showOrig = false;
+const adjOf = p => p.adj || (p.adj = {});
+const adjActive = p => !showOrig && p.adj && ADJ.some(([k]) => p.adj[k]);
+function processImage(p, scale){
+  const a = p.adj, key = JSON.stringify(a) + '|' + scale.toFixed(4);
+  p._proc = p._proc || [];
+  const hit = p._proc.find(e => e.key === key); if (hit) return hit.c;
+  const w = Math.max(1, Math.round(p.w*scale)), h = Math.max(1, Math.round(p.h*scale));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently:true });
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.drawImage(p.img, 0, 0, w, h);
+  const id = x.getImageData(0, 0, w, h), d = id.data;
+  const v = k => (a[k]||0)/100;
+  const ex = Math.pow(2, v('exposure')*1.5), wr = v('warmth')*28, tn = v('tint')*22;
+  const hl = v('highlights')*70, sh = v('shadows')*70;
+  const sat = 1 + v('saturation'), vib = v('vibrance')*1.4, vg = v('vignette');
+  /* 亮度（伽瑪）與對比合成一張查表，加速大圖處理 */
+  const gamma = Math.pow(2, -v('brightness')), ct = v('contrast'), cf = ct >= 0 ? 1 + ct*0.8 : 1 + ct*0.7;
+  const lut = new Float32Array(1024);
+  for (let i=0;i<1024;i++){ let t = Math.pow(i/1023, gamma)*255; t = (t-128)*cf + 128; lut[i] = t; }
+  const cx = w/2, cy = h/2, rmax = Math.hypot(cx, cy);
+  for (let yy=0, i=0; yy<h; yy++){
+    const dy = (yy-cy)/rmax;
+    for (let xx=0; xx<w; xx++, i+=4){
+      let r = d[i], g = d[i+1], b = d[i+2];
+      r = (r + wr)*ex; g = (g - tn)*ex; b = (b - wr)*ex;
+      if (hl || sh){
+        const L = Math.min(1, Math.max(0, (0.299*r + 0.587*g + 0.114*b)/255));
+        const add = sh*(1-L)*(1-L) + hl*L*L;
+        r += add; g += add; b += add;
+      }
+      r = lut[((r<0?0:r>255?255:r)*4.01)|0]; g = lut[((g<0?0:g>255?255:g)*4.01)|0]; b = lut[((b<0?0:b>255?255:b)*4.01)|0];
+      if (sat !== 1 || vib){
+        const gray = 0.299*r + 0.587*g + 0.114*b;
+        let f = sat;
+        if (vib){ const mx = Math.max(r,g,b), mn = Math.min(r,g,b), s = mx > 0 ? (mx-mn)/mx : 0; f *= 1 + vib*(1-s); }
+        r = gray + (r-gray)*f; g = gray + (g-gray)*f; b = gray + (b-gray)*f;
+      }
+      if (vg){ const dx = (xx-cx)/rmax, dd = dx*dx + dy*dy, m = vg > 0 ? 1 - vg*0.85*dd*dd*1.6 : 1 - vg*0.6*dd*dd*1.6; r *= m; g *= m; b *= m; }
+      d[i] = r; d[i+1] = g; d[i+2] = b;
+    }
+  }
+  x.putImageData(id, 0, 0);
+  p._proc.unshift({ key, c }); if (p._proc.length > 3) p._proc.length = 3;
+  return c;
+}
+
 const RATIOS = { orig:0, '1:1':1, '4:5':0.8, '3:4':0.75, '9:16':9/16, '2:3':2/3, '3:2':1.5, '16:9':16/9 };
 
 function compose(p, scale){
   const w = Math.max(1, Math.round(p.w*scale)), h = Math.max(1, Math.round(p.h*scale)), s0 = Math.min(w,h);
   const z = Math.max(1, p.zoom||1), px = (p.panX||0)/100, py = (p.panY||0)/100;
+  let SRC = p.img, k = 1;
+  if (adjActive(p)){ SRC = processImage(p, Math.min(1, scale*z)); k = SRC.width / p.w; }
   /* 依照片格長寬裁切來源，再套用縮放與移動 */
   const mk = (bw, bh) => {
     const ba = bw/bh; let sw, sh;
@@ -735,7 +800,7 @@ function compose(p, scale){
     sw /= z; sh /= z;
     const sx = (p.w-sw)/2*(1+px), sy = (p.h-sh)/2*(1+py);
     LOGO_MAXW = bw * 0.3;
-    return { img:p.img, w:bw, h:bh, s:s0, crop:[sx,sy,sw,sh] };
+    return { img:SRC, w:bw, h:bh, s:s0, crop:[sx*k,sy*k,sw*k,sh*k] };
   };
   let P = mk(w, h), L = TPL[S.tpl].layout(p, P);
   const r = RATIOS[S.ratio];
@@ -773,9 +838,10 @@ function render(){
 }
 
 /* ---------- 介面 ---------- */
-const TABS = [['tpl','版型'],['ratio','比例'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
+const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
 let tab = 'tpl', logoOpts = false;
 const GEAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+const fmtA = v => { v = +v||0; return (v>0?'+':'')+v; };
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const chips = (name, opts, curv, num) => `<div class="chips">${opts.map(([v,l])=>`<button type="button" class="chip${String(curv)===String(v)?' on':''}" data-set="${name}" data-val="${v}"${num?' data-num="1"':''}>${l}</button>`).join('')}</div>`;
 const sw = k => `<button type="button" class="sw" data-show="${k}" aria-pressed="${!!S.show[k]}" aria-label="顯示"></button>`;
@@ -800,7 +866,15 @@ function renderPanel(){
   let h = '';
   switch(tab){
     case 'tpl':
-      h = `<div class="tpls">${Object.entries(TPL).map(([k,t])=>`<button type="button" class="tpl${k===S.tpl?' on':''}" data-tpl="${k}"><div class="box" data-thumb="${k}"></div>${t.name}</button>`).join('')}</div>`;
+      { const favs = (S.favs||[]).filter(k=>TPL[k]);
+        const order = favs.concat(Object.keys(TPL).filter(k=>!favs.includes(k)));
+        h = `<div class="tpls">${order.map(k=>{ const t=TPL[k], f=favs.includes(k); return `<button type="button" class="tpl${k===S.tpl?' on':''}${f?' fav':''}" data-tpl="${k}"><div class="box" data-thumb="${k}"></div><span class="star${f?' on':''}" data-fav="${k}" role="button" aria-label="${f?'取消最愛':'加入最愛'}">${f?'★':'☆'}</span>${t.name}</button>`; }).join('')}</div>`
+          + `<p class="hint">點縮圖右上角的星號加入最愛，最愛的版型會排在最前面。</p>`; }
+      break;
+    case 'adj':
+      h = ADJ.map(([k,l])=>`<div class="row"><label for="a_${k}">${l}</label><input type="range" id="a_${k}" data-adj="${k}" min="-100" max="100" step="1" value="${adjOf(p)[k]||0}"><span class="val" id="av_${k}">${fmtA(adjOf(p)[k])}</span></div>`).join('')
+        + `<div class="acts"><button type="button" class="btn ghost" data-act="resetAdj">重設調色</button>${photos.length>1?'<button type="button" class="btn ghost" data-act="adjAll">套用到全部照片</button>':''}</div>`
+        + `<p class="hint">按住上方預覽圖可以對照原圖。調色只套用在這張照片，輸出時以原始解析度處理。</p>`;
       break;
     case 'ratio':
       h = `<div class="label">成品比例（外框與資訊區不變，照片自動裁切）</div>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio)
@@ -889,6 +963,8 @@ $('#fileIn').addEventListener('change', e=>{ const f=[...e.target.files]; e.targ
 
 const panel = $('#panel');
 panel.addEventListener('click', async e=>{
+  const fv = e.target.closest('[data-fav]');
+  if (fv){ e.stopPropagation(); const k = fv.dataset.fav; S.favs = (S.favs||[]).filter(x=>TPL[x]); S.favs = S.favs.includes(k) ? S.favs.filter(x=>x!==k) : S.favs.concat(k); save(); renderPanel(); return; }
   const t = e.target.closest('button'); if (!t) return;
   const p = cur();
   if (t.dataset.tpl){ S.tpl = t.dataset.tpl; Object.assign(S, TPL[S.tpl].defaults, {barScale:1}); save(); panel.querySelectorAll('.tpl').forEach(x=>x.classList.toggle('on', x===t)); render(); return; }
@@ -912,6 +988,8 @@ panel.addEventListener('click', async e=>{
     if (customs.some(c=>c.key===k)){ customs = customs.filter(c=>c.key!==k); photos.forEach(q=>{ if(q.brandKey===k) q.brandKey = detectBrand(q.ex.make); }); }
     renderPanel(); render();
   }
+  else if (act === 'resetAdj'){ p.adj = {}; p._proc = []; renderPanel(); render(); }
+  else if (act === 'adjAll'){ photos.forEach(q=>{ q.adj = Object.assign({}, p.adj||{}); q._proc = []; }); toast('已套用到全部照片'); }
   else if (act === 'resetCrop'){ Object.assign(p, {zoom:1,panX:0,panY:0}); S.photoScale = 1; save(); renderPanel(); render(); }
   else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1,logoScale:1}); save(); renderPanel(); render(); }
   else if (act === 'pickDir'){ await pickDir(); renderPanel(); }
@@ -924,6 +1002,7 @@ panel.addEventListener('click', async e=>{
 panel.addEventListener('input', e=>{
   const t = e.target;
   if (t.dataset.field){ cur().data[t.dataset.field] = t.value; render(); }
+  else if (t.dataset.adj){ const k=t.dataset.adj; adjOf(cur())[k] = +t.value; $('#av_'+k).textContent = fmtA(t.value); render(); }
   else if (t.dataset.prange){ const k=t.dataset.prange; cur()[k] = +t.value; $('#pv_'+k).textContent = fmtP(k); render(); }
   else if (t.dataset.range){ const k=t.dataset.range; S[k] = +t.value; $('#v_'+k).textContent = fmtVal(k); save(); render(); }
   else if (t.id === 'authorIn'){ S.author = t.value; save(); render(); }
@@ -1126,6 +1205,15 @@ async function preview(p, blob){
   const img = $('#ovImg'); if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
   img.src = URL.createObjectURL(blob); $('#overlay').hidden = false;
 }
+$('#handle').addEventListener('click', ()=>{
+  const app = $('#app'), c = app.classList.toggle('collapsed');
+  $('#handle').setAttribute('aria-expanded', String(!c)); $('#handle').setAttribute('aria-label', c ? '展開工具列' : '收合工具列');
+});
+const holdOn = e => { if (!cur() || !cur().adj || !ADJ.some(([k])=>cur().adj[k])) return; showOrig = true; render(); };
+const holdOff = () => { if (showOrig){ showOrig = false; render(); } };
+pv.addEventListener('pointerdown', holdOn);
+['pointerup','pointerleave','pointercancel'].forEach(ev=>pv.addEventListener(ev, holdOff));
+pv.addEventListener('contextmenu', e=>e.preventDefault());
 $('#ovClose').addEventListener('click', ()=> $('#overlay').hidden = true);
 $('#dlBtn').addEventListener('click', ()=> download([cur()]));
 

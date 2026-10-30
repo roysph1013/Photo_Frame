@@ -122,7 +122,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v20</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v21</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -186,7 +186,7 @@ const DEF = {
   tpl:'bar4', ratio:'orig', bg:'#ffffff', border:5, barScale:1, radius:0, shadow:false,
   textScale:1, photoScale:1, font:'Jost', weight:'regular', quality:0.92, focalMode:'actual', dateFmt:'full',
   offX:0, offY:0, padScale:1, lineGap:1, gapScale:1, logoScale:1,
-  textShadow:true, logoVariant:{}, favs:[], author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
+  textShadow:true, logoShadow:'follow', logoVariant:{}, favs:[], author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
   show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true,quote:true}
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -390,6 +390,15 @@ function divRow(segs, l, lineColor){
   }};
 }
 let LOGO_MAXW = Infinity;
+/* Logo 陰影：跟隨文字（疊在照片上才有）、開、關 */
+function logoShade(ctx, h, fn){
+  const m = S.logoShadow || 'follow';
+  if (m === 'follow'){ fn(); return; }
+  ctx.save();
+  if (m === 'off'){ ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; }
+  else { ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = h*0.2; ctx.shadowOffsetY = h*0.03; }
+  fn(); ctx.restore();
+}
 function logoInfo(p, h, onDark){
   const none = { w:0, h:0, draw(){} };
   if (!S.show.logo || !p.brandKey || p.brandKey==='none') return none;
@@ -403,13 +412,13 @@ function logoInfo(p, h, onDark){
     const nw = img.naturalWidth || 300, nh = img.naturalHeight || 100;
     let w = h * nw / nh;
     if (w > maxW){ h *= maxW / w; w = maxW; }
-    return { w, h, draw(ctx,x,cy){ ctx.drawImage(img, x, cy-h/2, w, h); } };
+    return { w, h, draw(ctx,x,cy){ logoShade(ctx, h, ()=>ctx.drawImage(img, x, cy-h/2, w, h)); } };
   }
   const t = brandName(p.brandKey); if (!t) return none;
   const l = { t, size:h*0.6, weight:700, ls:0.06, family:'Jost', fixed:true };
   let w = measure(l);
   if (w > maxW){ l.size *= maxW / w; w = maxW; }
-  return { w, h, draw(ctx,x,cy,color){ font(ctx,l); ctx.fillStyle=color; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(t,x,cy); } };
+  return { w, h, draw(ctx,x,cy,color){ logoShade(ctx, h, ()=>{ font(ctx,l); ctx.fillStyle=color; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(t,x,cy); }); } };
 }
 function vis(p){
   const d = p.data, sh = S.show, g = k => sh[k] && d[k] ? d[k] : '';
@@ -922,7 +931,7 @@ function renderPanel(){
         .concat([`<button type="button" class="lg add" data-act="addCustom" aria-label="新增自訂 Logo">＋</button>`]);
       const nm = brandName(p.brandKey);
       h = `<div class="logos">${tiles.join('')}</div>`;
-      if (p.brandKey !== 'none') h += slider('logoScale','Logo 大小',0.4,2.5,0.05);
+      if (p.brandKey !== 'none') h += slider('logoScale','Logo 大小',0.4,2.5,0.05) + `<div class="label">Logo 陰影</div>` + chips('logoShadow', [['follow','跟隨文字陰影'],['on','開'],['off','關']], S.logoShadow||'follow');
       if (VARIANTS[p.brandKey] && !logoData[p.brandKey]) h += `<div class="label">款式</div><div class="chips">${VARIANTS[p.brandKey].map(([v,l])=>`<button type="button" class="chip${variantOf(p.brandKey)===VARIANTS[p.brandKey].find(x=>x[0]===v)[2]?' on':''}" data-variant="${v}">${l}</button>`).join('')}</div>`;
       { const vb = BUILTIN[variantOf(p.brandKey)];
         if (vb && !vb.fixed && !logoData[p.brandKey]) h += `<div class="label">Logo 顏色</div>` + chips('logoColor', [['auto','自動（依邊框）'],['black','黑色'],['white','白色']].concat(vb.gray ? [['gray','灰色']] : []).concat(vb.color ? [['color','彩色']] : []), S.logoColor); }

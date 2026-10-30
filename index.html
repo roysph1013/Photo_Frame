@@ -97,6 +97,9 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
 .lg.none,.lg.add{background:var(--surface2);color:var(--muted);font:400 12px var(--ui)}
 .lg.add{font-size:24px}
 .acts{display:flex;flex-wrap:wrap;gap:8px}
+.chips.one{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips.one::-webkit-scrollbar{display:none}
+.chips.one>*{flex:0 0 auto;white-space:nowrap}
 .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:-4px}
 .gear{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .gear.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
@@ -119,7 +122,7 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v19</small></div>
+    <div class="mark">參數相框<small>EXIF FRAME · v20</small></div>
     <button id="dlBtn" class="btn primary" type="button">下載</button>
   </header>
   <main class="stage">
@@ -918,13 +921,14 @@ function renderPanel(){
         .concat(BRANDS.concat(customs).map(b=>`<button type="button" class="lg${p.brandKey===b.key?' on':''}" data-brand="${b.key}">${logoData[b.key]?`<img src="${logoData[b.key]}" alt="${esc(b.name)}">`:BUILTIN[variantOf(b.key)]?`<img src="${BUILTIN[variantOf(b.key)].light}" alt="${esc(b.name)}">`:esc(b.name)}</button>`))
         .concat([`<button type="button" class="lg add" data-act="addCustom" aria-label="新增自訂 Logo">＋</button>`]);
       const nm = brandName(p.brandKey);
-      h = `<div class="head"><span class="label">選擇 Logo</span><button type="button" class="gear${logoOpts?' on':''}" data-act="logoOpts" aria-expanded="${logoOpts}" aria-label="Logo 設定">${GEAR}</button></div><div class="logos">${tiles.join('')}</div>`;
-      if (!logoOpts) break;
+      h = `<div class="logos">${tiles.join('')}</div>`;
+      if (p.brandKey !== 'none') h += slider('logoScale','Logo 大小',0.4,2.5,0.05);
       if (VARIANTS[p.brandKey] && !logoData[p.brandKey]) h += `<div class="label">款式</div><div class="chips">${VARIANTS[p.brandKey].map(([v,l])=>`<button type="button" class="chip${variantOf(p.brandKey)===VARIANTS[p.brandKey].find(x=>x[0]===v)[2]?' on':''}" data-variant="${v}">${l}</button>`).join('')}</div>`;
       { const vb = BUILTIN[variantOf(p.brandKey)];
         if (vb && !vb.fixed && !logoData[p.brandKey]) h += `<div class="label">Logo 顏色</div>` + chips('logoColor', [['auto','自動（依邊框）'],['black','黑色'],['white','白色']].concat(vb.gray ? [['gray','灰色']] : []).concat(vb.color ? [['color','彩色']] : []), S.logoColor); }
       if (p.brandKey !== 'none') h += `<div class="acts"><button type="button" class="btn ghost" data-act="uploadLogo">替 ${esc(nm)} 上傳 Logo 圖</button>${logoData[p.brandKey]?`<button type="button" class="btn ghost" data-act="removeLogo">${customs.some(c=>c.key===p.brandKey)?'刪除這個 Logo':BUILTIN[p.brandKey]?'改回內建 Logo':'改回文字'}</button>`:''}</div>`;
-      h += `<p class="hint">上傳透明背景的 PNG 或 SVG 效果最好，會存在這台裝置的瀏覽器裡。深色邊框請上傳白色版本。可到品牌官網的媒體資料區或 Wikimedia Commons 下載。</p>`;
+      h += `<p class="hint">自己上傳的 Logo 建議用透明背景的 PNG 或 SVG，會存在這台裝置。</p>`;
+      h = h.split('<div class="chips">').join('<div class="chips one">');
       break; }
     case 'model':
       h = field('model','型號','例如 ILCE-6300') + field('lens','鏡頭','例如 FE 35mm F1.8');
@@ -955,7 +959,7 @@ function renderPanel(){
       h = `<p class="hint">調整照片下方資訊的位置與間距，數值相對於照片短邊，套用到所有版型。</p>`
         + slider('offY','上下位移',-8,8,0.1) + slider('offX','左右位移',-8,8,0.1)
         + slider('padScale','左右邊距',0.2,3,0.05) + slider('gapScale','區塊間距',0.3,3,0.05)
-        + slider('lineGap','行距',0.3,2.5,0.05) + slider('logoScale','Logo 大小',0.4,2.5,0.05)
+        + slider('lineGap','行距',0.3,2.5,0.05)
         + `<div class="acts"><button type="button" class="btn ghost" data-act="resetPos">重設位置</button></div>`;
       break;
     case 'out':
@@ -1029,7 +1033,7 @@ panel.addEventListener('click', async e=>{
   else if (act === 'resetAdj'){ p.adj = {}; p._proc = []; renderPanel(); render(); }
   else if (act === 'adjAll'){ photos.forEach(q=>{ q.adj = Object.assign({}, p.adj||{}); q._proc = []; }); toast('已套用到全部照片'); }
   else if (act === 'resetCrop'){ Object.assign(p, {zoom:1,panX:0,panY:0}); S.photoScale = 1; save(); renderPanel(); render(); }
-  else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1,logoScale:1}); save(); renderPanel(); render(); }
+  else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1}); save(); renderPanel(); render(); }
   else if (act === 'pickDir'){ await pickDir(); renderPanel(); }
   else if (act === 'locAll'){ photos.forEach(q=> q.data.location = p.data.location); toast('已套用到全部照片'); }
   else if (act === 'dlOne') download([p]);

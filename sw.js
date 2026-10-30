@@ -1,7 +1,7 @@
 /* 參數相框 離線快取
    - 主程式：先抓網路（拿到最新版），沒網路才用快取
    - 字體與圖示：先用快取，背景更新 */
-const CACHE = 'photo-frame-v21';
+const CACHE = 'photo-frame-v22';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -23,7 +23,7 @@ self.addEventListener('fetch', e => {
   // 主頁面：網路優先
   if (req.mode === 'navigate' || (url.origin === location.origin && url.pathname.endsWith('/index.html'))) {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req.url, { cache:'no-cache', credentials:'same-origin' }).then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put('./index.html', copy));
         return res;

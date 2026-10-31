@@ -15,123 +15,144 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link id="font-Jost" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
 <style>
-/* 暗房式編輯器：上方預覽、下方工具面板與分頁，像相機 app 的後製畫面 */
+/* 設計系統：參考 iOS「照片」編輯介面——純黑底、灰階層次、單一暖色強調
+   規則：文字選項＝膠囊（選中填色）；圖像選項＝外圈光環；設定列＝左標籤右控制 */
 :root{
-  --bg:#0c0d0f; --surface:#16181b; --surface2:#202328; --line:#2d3137;
-  --fg:#f1eee8; --muted:#9b978f; --accent:#eba35c; --accent-ink:#1b1206;
-  --ui:-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-  --num:"Jost",var(--ui);
+  --bg:#000; --surface:#111113; --fill:#1c1c1e; --fill2:#2c2c2e; --fill3:#3a3a3c;
+  --line:rgba(255,255,255,.09); --fg:#f5f5f7; --muted:#8e8e93;
+  --accent:#f0a35e; --accent-ink:#1a1006;
+  --ring:0 0 0 2px var(--surface),0 0 0 4px var(--accent);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --num:-apple-system,BlinkMacSystemFont,"SF Pro Text","Jost","Segoe UI",Roboto,sans-serif;
+  --gut:max(16px,env(safe-area-inset-left,0px)); --gutr:max(16px,env(safe-area-inset-right,0px));
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--ui);-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 var(--ui);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
+button{-webkit-user-select:none;user-select:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.top{display:flex;align-items:center;gap:10px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.mark{flex:1;font:600 17px/1 var(--num);letter-spacing:.04em;text-align:center}
-.mark small{display:block;font:400 11px/1.6 var(--ui);color:var(--muted);letter-spacing:.08em}
-.btn{border:0;border-radius:999px;padding:9px 16px;cursor:pointer;white-space:nowrap;font-size:14px}
-.btn.ghost{background:var(--surface2)}
-.btn.primary{background:var(--accent);color:var(--accent-ink);font-weight:600}
-.stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-#pv{max-width:100%;max-height:100%;width:auto;height:auto;display:block;box-shadow:0 8px 30px rgba(0,0,0,.5)}
-.tag{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(0,0,0,.6);backdrop-filter:blur(6px);padding:5px 12px;border-radius:999px;font-size:12px;color:var(--fg);white-space:nowrap}
-.strip{display:flex;gap:8px;overflow-x:auto;padding-block:6px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.thumb{position:relative;flex:0 0 auto;width:52px;height:52px;border-radius:8px;overflow:hidden;border:2px solid transparent;padding:0;background:var(--surface2);cursor:pointer}
+
+/* 導覽列 */
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:52px;padding-left:var(--gut);padding-right:var(--gutr)}
+.navbtn{justify-self:start;display:flex;align-items:center;gap:6px;background:none;border:0;padding:8px 0;color:var(--accent);font-size:16px;cursor:pointer}
+.mark{font-size:17px;font-weight:600;letter-spacing:.01em}
+
+/* 預覽 */
+.stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding-block:6px 12px;padding-left:var(--gut);padding-right:var(--gutr)}
+#pv{max-width:100%;max-height:100%;width:auto;height:auto;display:block;box-shadow:0 4px 24px rgba(0,0,0,.7);-webkit-touch-callout:none;user-select:none;touch-action:manipulation}
+.tag{display:none}
+
+/* 多張照片 */
+.strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-block:4px 8px;padding-left:var(--gut);padding-right:var(--gutr)}
+.strip::-webkit-scrollbar{display:none}
+.thumbw{position:relative;flex:0 0 auto;padding:7px 7px 0 0}
+.thumb{display:block;width:48px;height:48px;border-radius:8px;overflow:hidden;border:0;padding:0;background:var(--fill);cursor:pointer}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.thumb.on{border-color:var(--accent)}
-.thumbw{position:relative;flex:0 0 auto;padding:6px 6px 0 0}
-.tdel{position:absolute;top:0;right:0;width:22px;height:22px;border-radius:50%;border:2px solid var(--bg);background:#3a3d42;color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
-.adjs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.adjs::-webkit-scrollbar{display:none}
-.adjchip{flex:0 0 auto;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;display:flex;gap:4px;align-items:center;white-space:nowrap}
-.adjchip i{font-style:normal;font-size:11px;color:var(--accent);font-variant-numeric:tabular-nums}
-.adjchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-.adjchip.on i{color:var(--accent-ink)}
-.btn.sm{padding:7px 14px;font-size:13px}
-.panel{background:var(--surface);border-top:1px solid var(--line);max-height:34vh;overflow-y:auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
-.panel>*{flex-shrink:0}
-.tabs{display:flex;gap:4px;overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);padding-block:4px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;background:none;border:0;padding:12px 12px;font-size:15px;color:var(--muted);cursor:pointer}
-.tab.on{color:var(--accent);font-weight:600}
-.tab.done{color:var(--fg);font-weight:600;display:flex;align-items:center;gap:6px;border-right:1px solid var(--line);margin-right:4px;padding-right:16px}
-.tab.title{color:var(--fg);font-weight:600;cursor:default}
-.bar{display:flex;justify-content:space-around;align-items:flex-start;background:var(--surface);border-top:1px solid var(--line);padding-block:12px 10px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-.barbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--fg);font-size:13px;cursor:pointer;min-width:58px;padding:0}
-.barbtn .ic{width:52px;height:52px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center}
+.thumb.on{box-shadow:var(--ring)}
+.tdel{position:absolute;top:0;right:0;width:20px;height:20px;border-radius:50%;border:0;background:var(--fill3);color:var(--fg);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+
+/* 主選單 */
+.bar{display:flex;justify-content:space-around;background:var(--bg);padding-block:10px 8px;padding-left:var(--gut);padding-right:var(--gutr)}
+.barbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;min-width:56px;padding:0}
+.barbtn .ic{width:50px;height:50px;border-radius:50%;background:var(--fill);color:var(--fg);display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.barbtn:active .ic{transform:scale(.94)}
 .barbtn.primary .ic{background:var(--accent);color:var(--accent-ink)}
-.vtiles{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;padding:2px}
-.vtiles::-webkit-scrollbar{display:none}
-.vtile{flex:0 0 auto;width:76px;height:50px;border-radius:10px;background:#fff;border:2px solid transparent;padding:6px 8px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.vtile img{max-width:100%;max-height:100%;display:block}
-.vtile.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
-.dots{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
+.barbtn.primary{color:var(--fg)}
+
+/* 細項：面板＋分段控制 */
+.panel{background:var(--surface);max-height:34vh;overflow-y:auto;padding-block:16px 12px;padding-left:var(--gut);padding-right:var(--gutr);display:flex;flex-direction:column;gap:12px;border-radius:16px 16px 0 0}
+.panel>*{flex-shrink:0}
+.tabs{display:flex;align-items:center;gap:12px;background:var(--surface);padding-block:6px 10px;padding-left:var(--gut);padding-right:var(--gutr)}
+.seg{flex:1;min-width:0;display:flex;gap:2px;background:var(--fill);border-radius:10px;padding:2px;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;background:none;border:0;border-radius:8px;padding:7px 12px;font-size:14px;color:var(--fg);cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--fill3);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.tabtitle{flex:1;font-size:15px;font-weight:600}
+.done{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+
+/* 設定列 */
+.row{display:flex;align-items:center;gap:12px;min-height:36px}
+.row>label{flex:0 0 56px;font-size:13px;color:var(--muted)}
+.row input[type=text]{flex:1;min-width:0;background:var(--fill);border:0;border-radius:10px;padding:10px 12px;font-size:15px}
+.row input[type=text]::placeholder{color:#636366}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:28px}
+.row .val{flex:0 0 42px;text-align:right;font:500 13px var(--num);font-variant-numeric:tabular-nums;color:var(--muted)}
+.label{font-size:13px;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin:0;line-height:1.5}
+
+/* 開關 */
+.sw{flex:0 0 auto;width:46px;height:28px;border-radius:999px;border:0;background:var(--fill3);position:relative;cursor:pointer;padding:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .2s}
+.sw[aria-pressed=true]{background:var(--accent)}
+.sw[aria-pressed=true]::after{transform:translateX(18px)}
+.spacer{flex:1}
+
+/* 膠囊（文字選項）：一律單排可滑動 */
+.chips,.adjs{flex:1;min-width:0;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:1px 0}
+.chips::-webkit-scrollbar,.adjs::-webkit-scrollbar{display:none}
+.chip,.adjchip{flex:0 0 auto;white-space:nowrap;background:var(--fill);border:0;border-radius:999px;padding:7px 14px;font-size:14px;cursor:pointer;display:flex;gap:5px;align-items:center}
+.chip.on,.adjchip.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.adjchip i{font-style:normal;font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums}
+.adjchip.on i{color:var(--accent-ink)}
+.adjchip.off{opacity:.4;text-decoration:line-through}
+
+/* 圖像選項：一律外圈光環 */
+.swatches,.dots{display:flex;gap:12px;align-items:center;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:4px}
+.swatch,.dot{position:relative;flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.swatch.on,.dot.on{box-shadow:var(--ring)}
+.swatch.blur{background:linear-gradient(135deg,#e89a5a,#6a7fa8)}
+.swatch.custom{background:conic-gradient(#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#c77dff,#ff6b6b);overflow:hidden}
+.swatch.custom input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
 .dot-auto{background:linear-gradient(135deg,#111 50%,#fff 50%)}
 .dot-black{background:#111}.dot-white{background:#fff}.dot-gray{background:#969696}
 .dot-color{background:conic-gradient(#61bb46,#fdb827,#f5821f,#e03a3e,#963d97,#009ddc,#61bb46)}
-.dot.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
-.adjchip.off{opacity:.45;text-decoration:line-through}
-.row .chips.one{flex:1;min-width:0}
-.label{font-size:12px;color:var(--muted);letter-spacing:.06em}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;cursor:pointer}
-.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-.tpls{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
-.tpl{flex:0 0 auto;width:92px;background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
-.tpl .box{width:92px;height:110px;border-radius:10px;background:#000;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+.tpls{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:4px 4px 2px}
+.tpls::-webkit-scrollbar{display:none}
+.tpl{position:relative;flex:0 0 auto;width:84px;background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:7px;align-items:center;font-size:12px;color:var(--muted)}
+.tpl .box{width:84px;height:104px;border-radius:10px;background:var(--fill);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tpl canvas{max-width:100%;max-height:100%;display:block}
-.tpl{position:relative}
-.star{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1}
-.star.on{color:#ffc24a}
-.handle{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:8px;height:26px;background:var(--surface);border:0;border-top:1px solid var(--line);color:var(--muted);cursor:pointer;padding:0}
-.handle .grip{width:36px;height:4px;border-radius:2px;background:var(--line)}
-.handle .chev{transition:transform .2s}
-#app.collapsed .handle .chev{transform:rotate(180deg)}
-#app.collapsed #panel,#app.collapsed #tabs,#app.collapsed #strip{display:none}
-#pv{-webkit-touch-callout:none;user-select:none;touch-action:manipulation}
-.tpl.on .box{border-color:var(--accent)}
-.tpl.on{color:var(--accent)}
-.row{display:flex;align-items:center;gap:10px}
-.row label{flex:0 0 64px;font-size:13px;color:var(--muted)}
-.row input[type=text]{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
-.row input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
-.row .val{flex:0 0 46px;text-align:right;font:500 13px var(--num);font-variant-numeric:tabular-nums;color:var(--muted)}
-.sw{flex:0 0 auto;width:44px;height:26px;border-radius:999px;border:0;background:var(--line);position:relative;cursor:pointer;padding:0}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s}
-.sw[aria-pressed=true]{background:var(--accent)}
-.sw[aria-pressed=true]::after{transform:translateX(18px)}
-.swatches{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.swatch{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
-.swatch.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
-.swatch.blur{background:linear-gradient(135deg,#e89a5a,#6a7fa8);}
-input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;border-radius:50%;cursor:pointer}
-.logos{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,64px);grid-auto-columns:64px;gap:8px;overflow-x:auto;padding-bottom:4px}
-.lg{width:64px;height:64px;border-radius:12px;background:#fff;color:#161616;border:2px solid transparent;display:flex;align-items:center;justify-content:center;padding:6px;cursor:pointer;font:700 11px/1.1 "Jost",var(--ui);letter-spacing:.04em;text-align:center;overflow:hidden;word-break:break-all}
+.tpl.on .box{box-shadow:var(--ring)}
+.tpl.on{color:var(--fg);font-weight:600}
+.star{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
+.star.on{color:#ffcc4d}
+
+.logos{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,58px);grid-auto-columns:58px;gap:10px;overflow-x:auto;scrollbar-width:none;padding:4px}
+.logos::-webkit-scrollbar{display:none}
+.lg{width:58px;height:58px;border-radius:12px;background:#fff;color:#161616;border:0;display:flex;align-items:center;justify-content:center;padding:7px;cursor:pointer;font:700 10px/1.1 -apple-system,"Jost",sans-serif;letter-spacing:.03em;text-align:center;overflow:hidden;word-break:break-all}
 .lg img{max-width:100%;max-height:100%;display:block}
-.lg.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
-.lg.none,.lg.add{background:var(--surface2);color:var(--muted);font:400 12px var(--ui)}
-.lg.add{font-size:24px}
-.acts{display:flex;flex-wrap:wrap;gap:8px}
-.chips.one{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.chips.one::-webkit-scrollbar{display:none}
-.chips.one>*{flex:0 0 auto;white-space:nowrap}
-.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:-4px}
-.gear{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.gear.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
-.fonts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.fontbtn{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
-.fontbtn b{font-size:17px;font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fontbtn span{font-size:11px;color:var(--muted)}
-.fontbtn.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.where{font-size:13px;background:var(--surface2);border-radius:10px;padding:10px 12px;line-height:1.5}
-.hint{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
-#overlay{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.lg.on{box-shadow:var(--ring)}
+.lg.none,.lg.add{background:var(--fill);color:var(--muted);font:400 12px var(--ui)}
+.lg.add{font-size:22px}
+.vtiles{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;padding:4px}
+.vtiles::-webkit-scrollbar{display:none}
+.vtile{flex:0 0 auto;width:72px;height:46px;border-radius:10px;background:#fff;border:0;padding:6px 8px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.vtile img{max-width:100%;max-height:100%;display:block}
+.vtile.on{box-shadow:var(--ring)}
+
+.fonts{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:4px;flex:1;min-width:0}
+.fonts::-webkit-scrollbar{display:none}
+.fontbtn{flex:0 0 auto;width:78px;height:62px;background:var(--fill);border:0;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}
+.fontbtn b{font-size:22px;font-weight:500;line-height:1.1}
+.fontbtn span{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fontbtn.on{box-shadow:var(--ring)}
+
+/* 按鈕 */
+.btn{border:0;border-radius:999px;padding:9px 16px;cursor:pointer;white-space:nowrap;font-size:14px;background:var(--fill);color:var(--fg)}
+.btn.ghost{background:var(--fill)}
+.btn.sm{padding:7px 14px;font-size:13px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.block{width:100%;padding:13px 16px;font-size:16px;border-radius:14px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+
+/* 彈出層 */
+#overlay{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 #overlay img{max-width:100%;max-height:78vh;display:block}
-#toast{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px);text-align:center}
+#toast{position:fixed;left:50%;bottom:calc(132px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(44,44,46,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:var(--fg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -139,10 +160,10 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
 <body>
 <div id="app">
   <header class="top">
-    <label class="btn ghost" for="fileIn">選照片</label>
+    <label class="navbtn" for="fileIn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9.5" r="1.5"/></svg>選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v26</small></div>
-    <span class="btn ghost" style="visibility:hidden" aria-hidden="true">選照片</span>
+    <div class="mark">參數相框</div>
+    <span></span>
   </header>
   <main class="stage">
     <canvas id="pv" width="10" height="10"></canvas>
@@ -155,8 +176,8 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
 </div>
 <div id="overlay" hidden>
   <img id="ovImg" alt="成品預覽">
-  <p class="hint" style="color:#ddd">長按圖片即可儲存到相簿</p>
-  <button class="btn ghost" id="ovClose" type="button">關閉</button>
+  <p class="hint">長按圖片即可存到相簿</p>
+  <button class="btn" id="ovClose" type="button">關閉</button>
 </div>
 <div id="toast"></div>
 <input id="logoIn" type="file" accept="image/png,image/svg+xml,image/webp,image/jpeg" hidden>
@@ -538,7 +559,7 @@ const TPL = {
     const W=w+2*b, H=b+h+bh;
     return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+b), info(ctx,ox,oy){ col.draw(ctx, ox+W/2, oy+b+h+bh/2); } };
   }},
-  centerShadow: { name:'置中陰影', frame:true, defaults:{ bg:'#fbf9f4', border:6, radius:0, shadow:true }, layout(p,P){
+  centerShadow: { name:'置中陰影', frame:true, defaults:{ bg:'#ffffff', border:6, radius:0, shadow:true }, layout(p,P){
     const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, b=s*S.border/100, bh=s*0.26*S.barScale;
     const logo = logoInfo(p, bh*0.2*T);
     const col = vcol([
@@ -695,7 +716,7 @@ Object.assign(TPL, {
       ctx.restore();
     }};
   }},
-  ovItalic: { name:'疊加斜體', frame:true, defaults:{ bg:'#fbf9f4', border:2, radius:0, shadow:false }, layout(p,P){
+  ovItalic: { name:'疊加斜體', frame:true, defaults:{ bg:'#ffffff', border:2, radius:0, shadow:false }, layout(p,P){
     const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, b=s*S.border/100, pad=s*0.05*S.padScale;
     const logo = logoInfo(p, s*0.065*T, true);
     const col = vcol([
@@ -896,6 +917,7 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
+const APP_VER = 'v27';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
@@ -928,8 +950,8 @@ function renderTabs(){
   }
   const g = GROUPS[group];
   bar.hidden = true; tabs.hidden = false; pnl.hidden = false;
-  tabs.innerHTML = `<button type="button" class="tab done" data-done="1" aria-label="完成，回到主選單"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>完成</button>`
-    + (g.tabs.length > 1 ? g.tabs.map(([k,l])=>`<button type="button" class="tab${k===tab?' on':''}" data-tab="${k}">${l}</button>`).join('') : `<span class="tab title">${g.name}</span>`);
+  tabs.innerHTML = (g.tabs.length > 1 ? `<div class="seg" role="tablist">${g.tabs.map(([k,l])=>`<button type="button" role="tab" aria-selected="${k===tab}" class="tab${k===tab?' on':''}" data-tab="${k}">${l}</button>`).join('')}</div>` : `<span class="tabtitle">${g.name}</span>`)
+    + `<button type="button" class="done" data-done="1" aria-label="完成"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`;
 }
 function renderStrip(){
   const st = $('#strip');
@@ -945,28 +967,27 @@ function renderPanel(){
       { const favs = (S.favs||[]).filter(k=>TPL[k]);
         const order = favs.concat(Object.keys(TPL).filter(k=>!favs.includes(k)));
         h = `<div class="tpls">${order.map(k=>{ const t=TPL[k], f=favs.includes(k); return `<button type="button" class="tpl${k===S.tpl?' on':''}${f?' fav':''}" data-tpl="${k}"><div class="box" data-thumb="${k}"></div><span class="star${f?' on':''}" data-fav="${k}" role="button" aria-label="${f?'取消最愛':'加入最愛'}">${f?'★':'☆'}</span>${t.name}</button>`; }).join('')}</div>`
-          + `<p class="hint">點縮圖右上角的星號加入最愛，最愛的版型會排在最前面。</p>`; }
+; }
       break;
     case 'adj':
       { const a = adjOf(p), cur_ = ADJ.find(x=>x[0]===adjKey) || ADJ[0];
         h = `<div class="adjs">${ADJ.map(([k,l])=>`<button type="button" class="adjchip${k===cur_[0]?' on':''}${a[k]?' set':''}" data-adjkey="${k}">${l}<i>${a[k]?fmtA(a[k]):''}</i></button>`).join('')}</div>`
           + `<div class="row"><label for="a_${cur_[0]}">${cur_[1]}</label><input type="range" id="a_${cur_[0]}" data-adj="${cur_[0]}" min="-100" max="100" step="1" value="${a[cur_[0]]||0}"><span class="val" id="av_${cur_[0]}">${fmtA(a[cur_[0]])}</span></div>`
-          + `<div class="acts"><button type="button" class="btn ghost sm" data-act="resetAdj">重設</button>${photos.length>1?'<button type="button" class="btn ghost sm" data-act="adjAll">套用到全部</button>':''}<span class="hint" style="align-self:center">按住預覽圖看原圖</span></div>`; }
+          + `<div class="acts"><button type="button" class="btn sm" data-act="resetAdj">重設</button>${photos.length>1?'<button type="button" class="btn sm" data-act="adjAll">套用到全部</button>':''}<span class="hint">按住預覽可看原圖</span></div>`; }
       break;
     case 'ratio':
-      h = `<div class="label">成品比例（外框不變，照片自動裁切）</div>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio)
-        + `<div class="label">照片裁切（這張照片）</div>` + pslider('zoom','放大',1,3,0.01) + pslider('panX','左右',-100,100,1) + pslider('panY','上下',-100,100,1)
-        + `<div class="label">照片大小（所有照片）</div>` + slider('photoScale','照片大小',0.6,1,0.01)
-        + `<div class="acts"><button type="button" class="btn ghost" data-act="resetCrop">重設裁切</button></div>`
-        + `<p class="hint">「照片大小」縮小時，照片四周會多出邊框色；外框比例保持不變。</p>`;
-      h = h.replace('<div class="chips">','<div class="chips one">');
+      h = `<div class="row"><label>比例</label>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio) + `</div>`
+        + pslider('zoom','放大',1,3,0.01) + pslider('panX','左右',-100,100,1) + pslider('panY','上下',-100,100,1)
+        + slider('photoScale','照片',0.6,1,0.01)
+        + `<div class="acts"><button type="button" class="btn sm" data-act="resetCrop">重設</button></div>`;
       break;
     case 'frame': {
-      const sws = [['#ffffff','白'],['#fbf9f4','米白'],['#e9e7e3','淺灰'],['#2a2a2a','深灰'],['#000000','黑']];
+      const sws = [['#ffffff','白'],['#2a2a2a','深灰'],['#000000','黑']];
       const isCustom = S.bg !== 'blur' && !sws.some(([c])=>c===S.bg);
-      h = `<div class="label">邊框顏色</div><div class="swatches">${sws.map(([c,l])=>`<button type="button" class="swatch${S.bg===c?' on':''}" style="background:${c}" data-set="bg" data-val="${c}" aria-label="${l}"></button>`).join('')}<button type="button" class="swatch blur${S.bg==='blur'?' on':''}" data-set="bg" data-val="blur" aria-label="模糊照片"></button><input type="color" id="bgColor" value="${isCustom?S.bg:'#c8b8a0'}" aria-label="自訂顏色" class="${isCustom?'on':''}"></div>`;
-      if (TPL[S.tpl].frame) h += slider('border','邊框寬度',0,15,0.5) + slider('radius','照片圓角',0,10,0.5) + `<div class="row"><label>照片陰影</label><span style="flex:1"></span><button type="button" class="sw" data-toggle="shadow" aria-pressed="${S.shadow}" aria-label="照片陰影"></button></div>`;
-      h += slider('barScale','資訊區高度',0.6,1.8,0.05);
+      h = `<div class="row"><label>顏色</label><div class="swatches">${sws.map(([c,l])=>`<button type="button" class="swatch${S.bg===c?' on':''}" style="background:${c}" data-set="bg" data-val="${c}" aria-label="${l}"></button>`).join('')}<button type="button" class="swatch blur${S.bg==='blur'?' on':''}" data-set="bg" data-val="blur" aria-label="照片模糊"></button><label class="swatch custom${isCustom?' on':''}" style="${isCustom?'background:'+S.bg:''}" aria-label="自訂顏色"><input type="color" id="bgColor" value="${isCustom?S.bg:'#c8b8a0'}"></label></div></div>`;
+      if (TPL[S.tpl].frame) h += slider('border','寬度',0,15,0.5) + slider('radius','圓角',0,10,0.5);
+      h += slider('barScale','資訊區',0.6,1.8,0.05);
+      if (TPL[S.tpl].frame) h += `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="shadow" aria-pressed="${S.shadow}" aria-label="照片陰影"></button></div>`;
       break; }
     case 'logo': {
       const tiles = [`<button type="button" class="lg none${p.brandKey==='none'?' on':''}" data-brand="none">不顯示</button>`]
@@ -983,7 +1004,7 @@ function renderPanel(){
           h += `<div class="row"><label>顏色</label><div class="dots">${opts.map(([v,l])=>`<button type="button" class="dot dot-${v}${(S.logoColor||'auto')===v?' on':''}" data-set="logoColor" data-val="${v}" aria-label="${l}" title="${l}"></button>`).join('')}</div></div>`;
         }
         h += `<div class="row"><label>陰影</label>` + chips('logoShadow', [['follow','跟隨文字'],['on','開'],['off','關']], S.logoShadow||'follow') + `</div>`;
-        h += `<div class="acts"><button type="button" class="btn ghost sm" data-act="uploadLogo">替 ${esc(nm)} 上傳 Logo</button>${logoData[p.brandKey]?`<button type="button" class="btn ghost sm" data-act="removeLogo">${customs.some(c=>c.key===p.brandKey)?'刪除這個 Logo':BUILTIN[p.brandKey]||VARIANTS[p.brandKey]?'改回內建 Logo':'改回文字'}</button>`:''}</div>`;
+        h += `<div class="acts"><button type="button" class="btn sm" data-act="uploadLogo">替 ${esc(nm)} 上傳 Logo</button>${logoData[p.brandKey]?`<button type="button" class="btn sm" data-act="removeLogo">${customs.some(c=>c.key===p.brandKey)?'刪除這個 Logo':BUILTIN[p.brandKey]||VARIANTS[p.brandKey]?'改回內建 Logo':'改回文字'}</button>`:''}</div>`;
       }
       h = h.split('<div class="chips">').join('<div class="chips one">');
       break; }
@@ -998,27 +1019,27 @@ function renderPanel(){
         h += field(infoKey, lab[infoKey], ph[infoKey]);
         if (infoKey === 'focal') h += chips('focalMode', [['actual','實際焦段'],['equiv','等效 35mm']], S.focalMode);
         if (infoKey === 'date') h += chips('dateFmt', [['full','2026.10.18 20:40'],['date','2026.10.18'],['slash','2026/10/18 20:40']], S.dateFmt);
-        if (infoKey === 'location' && photos.length > 1) h += `<div class="acts"><button type="button" class="btn ghost sm" data-act="locAll">套用到全部照片</button></div>`;
+        if (infoKey === 'location' && photos.length > 1) h += `<div class="acts"><button type="button" class="btn sm" data-act="locAll">套用到全部照片</button></div>`;
       }
       h = h.split('<div class="chips">').join('<div class="chips one">');
       break; }
     case 'font':
-      h = `<div class="row"><label>文字陰影</label><span style="flex:1;font-size:12px;color:var(--muted)">疊在照片上的文字</span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`
-        + `<div class="label">粗細</div>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight)
-        + slider('textScale','文字大小',0.6,1.6,0.05)
-        + FONT_GROUPS.map(([g,list])=>`<div class="label">${g}</div><div class="fonts">${list.map(([n,note])=>`<button type="button" class="fontbtn${S.font===n?' on':''}" data-set="font" data-val="${esc(n)}"><b style="font-family:${esc(fam(n))}">${n==='system'?'System':esc(n)}</b><span>${esc(note)}</span></button>`).join('')}</div>`).join('');
+      h = `<div class="row"><label>字體</label><div class="fonts">${FONT_GROUPS.flatMap(([,list])=>list).map(([n])=>`<button type="button" class="fontbtn${S.font===n?' on':''}" data-set="font" data-val="${esc(n)}" aria-label="${esc(n==='system'?'系統字體':n)}"><b style="font-family:${esc(fam(n))}">Aa</b><span>${n==='system'?'系統':esc(n)}</span></button>`).join('')}</div></div>`
+        + `<div class="row"><label>粗細</label>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight) + `</div>`
+        + slider('textScale','大小',0.6,1.6,0.05)
+        + `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`;
       break;
     case 'pos':
-      h = `<p class="hint">調整照片下方資訊的位置與間距，數值相對於照片短邊，套用到所有版型。</p>`
-        + slider('offY','上下位移',-8,8,0.1) + slider('offX','左右位移',-8,8,0.1)
-        + slider('padScale','左右邊距',0.2,3,0.05) + slider('gapScale','區塊間距',0.3,3,0.05)
+      h = slider('offY','上下',-8,8,0.1) + slider('offX','左右',-8,8,0.1)
+        + slider('padScale','邊距',0.2,3,0.05) + slider('gapScale','間距',0.3,3,0.05)
         + slider('lineGap','行距',0.3,2.5,0.05)
-        + `<div class="acts"><button type="button" class="btn ghost" data-act="resetPos">重設位置</button></div>`;
+        + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button></div>`;
       break;
     case 'out':
-      h = `<div class="where">${saveWhereText()}</div>` + slider('quality','JPG 品質',0.6,1,0.01)
-        + `<div class="acts"><button type="button" class="btn primary" data-act="dlOne">下載這張</button>${photos.length>1?`<button type="button" class="btn ghost" data-act="dlAll">全部下載（${photos.length} 張）</button>`:''}<button type="button" class="btn ghost" data-act="share">分享 / 存到相簿</button><button type="button" class="btn ghost" data-act="preview">預覽成品</button>${CAN_DIR?`<button type="button" class="btn ghost" data-act="pickDir">${dirHandle?'更換儲存資料夾':'設定 Frame 資料夾'}</button>`:''}</div>`
-        + `<p class="hint">輸出為原始解析度。若在 LINE 等 App 內建瀏覽器無法下載，請用「預覽成品」後長按圖片儲存，或改用 Chrome 開啟。</p>`;
+      h = `<button type="button" class="btn primary block" data-act="dlOne">保存${photos.length>1?'這張':''}</button>`
+        + `<div class="acts"><button type="button" class="btn sm" data-act="share">分享</button>${photos.length>1?`<button type="button" class="btn sm" data-act="dlAll">全部保存（${photos.length}）</button>`:''}<button type="button" class="btn sm" data-act="preview">預覽</button>${CAN_DIR?`<button type="button" class="btn sm" data-act="pickDir">${dirHandle?'更換資料夾':'設定資料夾'}</button>`:''}</div>`
+        + slider('quality','品質',0.6,1,0.01)
+        + `<p class="foot">${saveWhereText()}<br>參數相框 ${APP_VER}</p>`;
       break;
   }
   el.innerHTML = h;
@@ -1112,7 +1133,7 @@ panel.addEventListener('input', e=>{
   else if (t.id === 'authorIn'){ S.author = t.value; save(); render(); }
   else if (t.id === 'quoteIn'){ S.quote = t.value; save(); render(); }
   else if (t.id === 'quoteByIn'){ S.quoteBy = t.value; save(); render(); }
-  else if (t.id === 'bgColor'){ S.bg = t.value; save(); panel.querySelectorAll('.swatch').forEach(x=>x.classList.remove('on')); t.classList.add('on'); render(); }
+  else if (t.id === 'bgColor'){ S.bg = t.value; save(); panel.querySelectorAll('.swatch').forEach(x=>x.classList.remove('on')); t.parentElement.classList.add('on'); t.parentElement.style.background = t.value; render(); }
 });
 
 /* ---------- Logo 庫（IndexedDB） ---------- */
@@ -1244,9 +1265,9 @@ const outName = p => outBase(p) + '.jpg';
 const CAN_DIR = 'showDirectoryPicker' in window;
 let dirHandle = null;
 function saveWhereText(){
-  if (dirHandle) return `儲存位置：<b>Frame</b> 資料夾，檔名為「原檔名_Frame.jpg」`;
-  if (CAN_DIR) return `第一次下載時會請你選一個資料夾（建議「Pictures」），工具會在裡面建立 <b>Frame</b> 資料夾，之後都存進去。`;
-  return `這個瀏覽器不能指定資料夾，會存到手機的「下載 (Download)」資料夾，檔名為「原檔名_Frame.jpg」。`;
+  if (dirHandle) return `存到 Frame 資料夾`;
+  if (CAN_DIR) return `第一次保存時選擇資料夾（建議 Pictures），會在裡面建立 Frame 資料夾`;
+  return `存到「下載」資料夾`;
 }
 async function pickDir(){
   try {
@@ -1271,7 +1292,7 @@ async function dirReady(){
 async function download(list){
   let useDir = false;
   if (CAN_DIR){ useDir = await dirReady(); if (!useDir) useDir = await pickDir(); }
-  toast(list.length > 1 ? `正在輸出 ${list.length} 張…` : '正在輸出…');
+  toast(list.length > 1 ? `正在保存 ${list.length} 張…` : '正在保存…');
   let ok = 0;
   for (const p of list){
     const blob = await exportBlob(p);
@@ -1292,7 +1313,7 @@ async function download(list){
     ok++;
     await new Promise(r=>setTimeout(r, 400));
   }
-  if (ok) toast(useDir ? `已存到 Frame 資料夾（${ok} 張）` : `已下載到「下載」資料夾（${ok} 張）`);
+  if (ok) toast(useDir ? `已保存到 Frame（${ok} 張）` : `已保存到「下載」（${ok} 張）`);
 }
 async function share(p){
   const blob = await exportBlob(p);

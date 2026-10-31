@@ -51,12 +51,31 @@ button,input{font:inherit;color:inherit}
 .adjchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 .adjchip.on i{color:var(--accent-ink)}
 .btn.sm{padding:7px 14px;font-size:13px}
-.panel{background:var(--surface);border-top:1px solid var(--line);min-height:150px;max-height:42vh;overflow-y:auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border-top:1px solid var(--line);max-height:34vh;overflow-y:auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 .panel>*{flex-shrink:0}
 .tabs{display:flex;gap:4px;overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);padding-block:4px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:0 0 auto;background:none;border:0;padding:12px 12px;font-size:15px;color:var(--muted);cursor:pointer}
 .tab.on{color:var(--accent);font-weight:600}
+.tab.done{color:var(--fg);font-weight:600;display:flex;align-items:center;gap:6px;border-right:1px solid var(--line);margin-right:4px;padding-right:16px}
+.tab.title{color:var(--fg);font-weight:600;cursor:default}
+.bar{display:flex;justify-content:space-around;align-items:flex-start;background:var(--surface);border-top:1px solid var(--line);padding-block:12px 10px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.barbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--fg);font-size:13px;cursor:pointer;min-width:58px;padding:0}
+.barbtn .ic{width:52px;height:52px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center}
+.barbtn.primary .ic{background:var(--accent);color:var(--accent-ink)}
+.vtiles{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;padding:2px}
+.vtiles::-webkit-scrollbar{display:none}
+.vtile{flex:0 0 auto;width:76px;height:50px;border-radius:10px;background:#fff;border:2px solid transparent;padding:6px 8px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.vtile img{max-width:100%;max-height:100%;display:block}
+.vtile.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.dots{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
+.dot-auto{background:linear-gradient(135deg,#111 50%,#fff 50%)}
+.dot-black{background:#111}.dot-white{background:#fff}.dot-gray{background:#969696}
+.dot-color{background:conic-gradient(#61bb46,#fdb827,#f5821f,#e03a3e,#963d97,#009ddc,#61bb46)}
+.dot.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.adjchip.off{opacity:.45;text-decoration:line-through}
+.row .chips.one{flex:1;min-width:0}
 .label{font-size:12px;color:var(--muted);letter-spacing:.06em}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;cursor:pointer}
@@ -122,17 +141,17 @@ input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;bord
   <header class="top">
     <label class="btn ghost" for="fileIn">選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
-    <div class="mark">參數相框<small>EXIF FRAME · v25</small></div>
-    <button id="dlBtn" class="btn primary" type="button">下載</button>
+    <div class="mark">參數相框<small>EXIF FRAME · v26</small></div>
+    <span class="btn ghost" style="visibility:hidden" aria-hidden="true">選照片</span>
   </header>
   <main class="stage">
     <canvas id="pv" width="10" height="10"></canvas>
     <span id="sampleTag" class="tag" hidden></span>
   </main>
   <div id="strip" class="strip" hidden></div>
-  <button type="button" id="handle" class="handle" aria-expanded="true" aria-label="收合工具列"><span class="grip"></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-  <section id="panel" class="panel"></section>
-  <nav id="tabs" class="tabs"></nav>
+  <section id="panel" class="panel" hidden></section>
+  <nav id="tabs" class="tabs" hidden></nav>
+  <nav id="bar" class="bar"></nav>
 </div>
 <div id="overlay" hidden>
   <img id="ovImg" alt="成品預覽">
@@ -877,7 +896,16 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-let tab = 'tpl', logoOpts = false;
+let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
+const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const GROUPS = {
+  tpl:   { name:'版型', icon:IC('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 16h16M8 19h4"/>'), tabs:[['tpl','版型']] },
+  photo: { name:'照片', icon:IC('<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>'), tabs:[['ratio','比例・裁切'],['adj','調色']] },
+  look:  { name:'外觀', icon:IC('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), tabs:[['frame','邊框'],['logo','Logo'],['font','字型'],['pos','位置']] },
+  info:  { name:'資訊', icon:IC('<path d="M4 7V4h16v3M9 20h6M12 4v16"/>'), tabs:[['info','資訊']] },
+  save:  { name:'保存', icon:IC('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'), tabs:[['out','保存']], primary:true }
+};
+const lastTab = {};
 const GEAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 const fmtA = v => { v = +v||0; return (v>0?'+':'')+v; };
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -892,7 +920,16 @@ const pslider = (k, label, min, max, step) => `<div class="row"><label for="pr_$
 const fmtVal = n => PCT.includes(n) ? Math.round(S[n]*100)+'%' : n==='quality' ? Math.round(S[n]*100) : n==='offX'||n==='offY' ? (S[n]>0?'+':'')+(+S[n]).toFixed(1) : S[n];
 
 function renderTabs(){
-  $('#tabs').innerHTML = TABS.map(([k,l])=>`<button type="button" class="tab${k===tab?' on':''}" data-tab="${k}">${l}</button>`).join('');
+  const bar = $('#bar'), tabs = $('#tabs'), pnl = $('#panel');
+  if (!group){
+    tabs.hidden = true; pnl.hidden = true; bar.hidden = false;
+    bar.innerHTML = Object.entries(GROUPS).map(([k,g])=>`<button type="button" class="barbtn${g.primary?' primary':''}" data-group="${k}"><span class="ic">${g.icon}</span>${g.name}</button>`).join('');
+    return;
+  }
+  const g = GROUPS[group];
+  bar.hidden = true; tabs.hidden = false; pnl.hidden = false;
+  tabs.innerHTML = `<button type="button" class="tab done" data-done="1" aria-label="完成，回到主選單"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>完成</button>`
+    + (g.tabs.length > 1 ? g.tabs.map(([k,l])=>`<button type="button" class="tab${k===tab?' on':''}" data-tab="${k}">${l}</button>`).join('') : `<span class="tab title">${g.name}</span>`);
 }
 function renderStrip(){
   const st = $('#strip');
@@ -901,6 +938,7 @@ function renderStrip(){
 }
 function renderPanel(){
   const p = cur(), el = $('#panel');
+  if (!group){ el.innerHTML = ''; return; }
   let h = '';
   switch(tab){
     case 'tpl':
@@ -916,11 +954,12 @@ function renderPanel(){
           + `<div class="acts"><button type="button" class="btn ghost sm" data-act="resetAdj">重設</button>${photos.length>1?'<button type="button" class="btn ghost sm" data-act="adjAll">套用到全部</button>':''}<span class="hint" style="align-self:center">按住預覽圖看原圖</span></div>`; }
       break;
     case 'ratio':
-      h = `<div class="label">成品比例（外框與資訊區不變，照片自動裁切）</div>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio)
+      h = `<div class="label">成品比例（外框不變，照片自動裁切）</div>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio)
         + `<div class="label">照片裁切（這張照片）</div>` + pslider('zoom','放大',1,3,0.01) + pslider('panX','左右',-100,100,1) + pslider('panY','上下',-100,100,1)
         + `<div class="label">照片大小（所有照片）</div>` + slider('photoScale','照片大小',0.6,1,0.01)
         + `<div class="acts"><button type="button" class="btn ghost" data-act="resetCrop">重設裁切</button></div>`
         + `<p class="hint">「照片大小」縮小時，照片四周會多出邊框色；外框比例保持不變。</p>`;
+      h = h.replace('<div class="chips">','<div class="chips one">');
       break;
     case 'frame': {
       const sws = [['#ffffff','白'],['#fbf9f4','米白'],['#e9e7e3','淺灰'],['#2a2a2a','深灰'],['#000000','黑']];
@@ -935,33 +974,34 @@ function renderPanel(){
         .concat([`<button type="button" class="lg add" data-act="addCustom" aria-label="新增自訂 Logo">＋</button>`]);
       const nm = brandName(p.brandKey);
       h = `<div class="logos">${tiles.join('')}</div>`;
-      if (p.brandKey !== 'none') h += slider('logoScale','Logo 大小',0.4,2.5,0.05) + `<div class="label">Logo 陰影</div>` + chips('logoShadow', [['follow','跟隨文字陰影'],['on','開'],['off','關']], S.logoShadow||'follow');
-      if (VARIANTS[p.brandKey] && !logoData[p.brandKey]) h += `<div class="label">款式</div><div class="chips">${VARIANTS[p.brandKey].map(([v,l])=>`<button type="button" class="chip${variantOf(p.brandKey)===VARIANTS[p.brandKey].find(x=>x[0]===v)[2]?' on':''}" data-variant="${v}">${l}</button>`).join('')}</div>`;
-      { const vb = BUILTIN[variantOf(p.brandKey)];
-        if (vb && !vb.fixed && !logoData[p.brandKey]) h += `<div class="label">Logo 顏色</div>` + chips('logoColor', [['auto','自動（依邊框）'],['black','黑色'],['white','白色']].concat(vb.gray ? [['gray','灰色']] : []).concat(vb.color ? [['color','彩色']] : []), S.logoColor); }
-      if (p.brandKey !== 'none') h += `<div class="acts"><button type="button" class="btn ghost" data-act="uploadLogo">替 ${esc(nm)} 上傳 Logo 圖</button>${logoData[p.brandKey]?`<button type="button" class="btn ghost" data-act="removeLogo">${customs.some(c=>c.key===p.brandKey)?'刪除這個 Logo':BUILTIN[p.brandKey]?'改回內建 Logo':'改回文字'}</button>`:''}</div>`;
-      h += `<p class="hint">自己上傳的 Logo 建議用透明背景的 PNG 或 SVG，會存在這台裝置。</p>`;
+      if (p.brandKey !== 'none'){
+        h += slider('logoScale','大小',0.4,2.5,0.05);
+        if (VARIANTS[p.brandKey] && !logoData[p.brandKey]) h += `<div class="row"><label>款式</label><div class="vtiles">${VARIANTS[p.brandKey].map(([v,l,bk])=>`<button type="button" class="vtile${variantOf(p.brandKey)===bk?' on':''}" data-variant="${v}" aria-label="${l}" title="${l}"><img src="${BUILTIN[bk].light}" alt=""></button>`).join('')}</div></div>`;
+        const vb = BUILTIN[variantOf(p.brandKey)];
+        if (vb && !vb.fixed && !logoData[p.brandKey]){
+          const opts = [['auto','自動（依邊框）'],['black','黑色'],['white','白色']].concat(vb.gray ? [['gray','灰色']] : []).concat(vb.color ? [['color','彩色']] : []);
+          h += `<div class="row"><label>顏色</label><div class="dots">${opts.map(([v,l])=>`<button type="button" class="dot dot-${v}${(S.logoColor||'auto')===v?' on':''}" data-set="logoColor" data-val="${v}" aria-label="${l}" title="${l}"></button>`).join('')}</div></div>`;
+        }
+        h += `<div class="row"><label>陰影</label>` + chips('logoShadow', [['follow','跟隨文字'],['on','開'],['off','關']], S.logoShadow||'follow') + `</div>`;
+        h += `<div class="acts"><button type="button" class="btn ghost sm" data-act="uploadLogo">替 ${esc(nm)} 上傳 Logo</button>${logoData[p.brandKey]?`<button type="button" class="btn ghost sm" data-act="removeLogo">${customs.some(c=>c.key===p.brandKey)?'刪除這個 Logo':BUILTIN[p.brandKey]||VARIANTS[p.brandKey]?'改回內建 Logo':'改回文字'}</button>`:''}</div>`;
+      }
       h = h.split('<div class="chips">').join('<div class="chips one">');
       break; }
-    case 'model':
-      h = field('model','型號','例如 ILCE-6300') + field('lens','鏡頭','例如 FE 35mm F1.8');
-      break;
-    case 'params':
-      h = field('focal','焦段','35mm') + field('fnum','光圈','f/2.8') + field('shutter','快門','1/200s') + field('iso','ISO','ISO100')
-        + `<div class="label">焦段來源</div>` + chips('focalMode', [['actual','實際焦段'],['equiv','等效 35mm']], S.focalMode);
-      break;
-    case 'date':
-      h = field('date','時間','2026.10.18 20:40') + `<div class="label">格式（會從 EXIF 重新帶入）</div>` + chips('dateFmt', [['full','2026.10.18 20:40'],['date','2026.10.18'],['slash','2026/10/18 20:40']], S.dateFmt);
-      break;
-    case 'loc':
-      h = field('location','地點','例如 河內, 越南') + (photos.length>1?`<div class="acts"><button type="button" class="btn ghost" data-act="locAll">套用到全部照片</button></div>`:'');
-      break;
-    case 'author':
-      h = `<div class="row"><label for="authorIn">署名</label><input type="text" id="authorIn" value="${esc(S.author)}" placeholder="你的名字">${sw('author')}</div><div class="label">前綴</div>` + chips('authorPrefix', [['by','by'],['Photo by','Photo by'],['©','©'],['','無']], S.authorPrefix)
-        + `<div class="row"><label for="quoteIn">引言</label><input type="text" id="quoteIn" value="${esc(S.quote)}" placeholder="灰條引言版型使用">${sw('quote')}</div>`
-        + `<div class="row"><label for="quoteByIn">出處</label><input type="text" id="quoteByIn" value="${esc(S.quoteBy)}" placeholder="引言作者"></div>`
-        + `<p class="hint">署名與引言套用到所有照片，並會記住。</p>`;
-      break;
+    case 'info': {
+      const INFO = [['model','型號'],['lens','鏡頭'],['focal','焦段'],['fnum','光圈'],['shutter','快門'],['iso','ISO'],['date','時間'],['location','地點'],['author','署名'],['quote','引言']];
+      const lab = Object.fromEntries(INFO);
+      const ph = {model:'例如 ILCE-6300', lens:'例如 FE 35mm F1.8', focal:'35mm', fnum:'f/2.8', shutter:'1/200s', iso:'ISO100', date:'2026.10.18 20:40', location:'例如 河內, 越南'};
+      h = `<div class="adjs">${INFO.map(([k,l])=>`<button type="button" class="adjchip${k===infoKey?' on':''}${S.show[k]?'':' off'}" data-infokey="${k}">${l}</button>`).join('')}</div>`;
+      if (infoKey === 'author') h += `<div class="row"><label for="authorIn">署名</label><input type="text" id="authorIn" value="${esc(S.author)}" placeholder="你的名字">${sw('author')}</div>` + chips('authorPrefix', [['by','by'],['Photo by','Photo by'],['©','©'],['','無前綴']], S.authorPrefix);
+      else if (infoKey === 'quote') h += `<div class="row"><label for="quoteIn">引言</label><input type="text" id="quoteIn" value="${esc(S.quote)}" placeholder="灰條引言版型使用">${sw('quote')}</div><div class="row"><label for="quoteByIn">出處</label><input type="text" id="quoteByIn" value="${esc(S.quoteBy)}" placeholder="引言作者"></div>`;
+      else {
+        h += field(infoKey, lab[infoKey], ph[infoKey]);
+        if (infoKey === 'focal') h += chips('focalMode', [['actual','實際焦段'],['equiv','等效 35mm']], S.focalMode);
+        if (infoKey === 'date') h += chips('dateFmt', [['full','2026.10.18 20:40'],['date','2026.10.18'],['slash','2026/10/18 20:40']], S.dateFmt);
+        if (infoKey === 'location' && photos.length > 1) h += `<div class="acts"><button type="button" class="btn ghost sm" data-act="locAll">套用到全部照片</button></div>`;
+      }
+      h = h.split('<div class="chips">').join('<div class="chips one">');
+      break; }
     case 'font':
       h = `<div class="row"><label>文字陰影</label><span style="flex:1;font-size:12px;color:var(--muted)">疊在照片上的文字</span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`
         + `<div class="label">粗細</div>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight)
@@ -1001,7 +1041,15 @@ function drawTplThumbs(){
 function refreshAll(){ renderTabs(); renderStrip(); renderPanel(); render(); }
 
 /* ---------- 事件 ---------- */
-$('#tabs').addEventListener('click', e=>{ const b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; renderTabs(); renderPanel(); });
+$('#tabs').addEventListener('click', e=>{
+  if (e.target.closest('[data-done]')){ group = null; renderTabs(); renderPanel(); return; }
+  const b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; lastTab[group]=tab; renderTabs(); renderPanel();
+});
+$('#bar').addEventListener('click', e=>{
+  const b=e.target.closest('[data-group]'); if(!b) return;
+  group = b.dataset.group; tab = lastTab[group] || GROUPS[group].tabs[0][0];
+  renderTabs(); renderPanel();
+});
 $('#strip').addEventListener('click', e=>{
   const dl = e.target.closest('[data-del]');
   if (dl){
@@ -1021,6 +1069,7 @@ panel.addEventListener('click', async e=>{
   const t = e.target.closest('button'); if (!t) return;
   const p = cur();
   if (t.dataset.variant){ S.logoVariant = Object.assign({}, S.logoVariant, {[p.brandKey]: t.dataset.variant}); save(); renderPanel(); render(); return; }
+  if (t.dataset.infokey){ infoKey = t.dataset.infokey; renderPanel(); const on = panel.querySelector('.adjchip.on'); if (on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); return; }
   if (t.dataset.adjkey){ adjKey = t.dataset.adjkey; renderPanel(); return; }
   if (t.dataset.tpl){ S.tpl = t.dataset.tpl; Object.assign(S, TPL[S.tpl].defaults, {barScale:1}); save(); panel.querySelectorAll('.tpl').forEach(x=>x.classList.toggle('on', x===t)); render(); return; }
   if (t.dataset.set){
@@ -1031,7 +1080,7 @@ panel.addEventListener('click', async e=>{
     if (k === 'font') await loadFont();
     save(); renderPanel(); render(); return;
   }
-  if (t.dataset.show){ const k=t.dataset.show; S.show[k]=!S.show[k]; t.setAttribute('aria-pressed', S.show[k]); save(); render(); return; }
+  if (t.dataset.show){ const k=t.dataset.show; S.show[k]=!S.show[k]; t.setAttribute('aria-pressed', S.show[k]); { const c = panel.querySelector(`[data-infokey="${k}"]`); if (c) c.classList.toggle('off', !S.show[k]); } save(); render(); return; }
   if (t.dataset.toggle){ const k=t.dataset.toggle; S[k]=!S[k]; t.setAttribute('aria-pressed', S[k]); save(); render(); return; }
   if (t.dataset.brand){ p.brandKey = t.dataset.brand; renderPanel(); render(); return; }
   const act = t.dataset.act;
@@ -1260,17 +1309,12 @@ async function preview(p, blob){
   const img = $('#ovImg'); if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
   img.src = URL.createObjectURL(blob); $('#overlay').hidden = false;
 }
-$('#handle').addEventListener('click', ()=>{
-  const app = $('#app'), c = app.classList.toggle('collapsed');
-  $('#handle').setAttribute('aria-expanded', String(!c)); $('#handle').setAttribute('aria-label', c ? '展開工具列' : '收合工具列');
-});
 const holdOn = e => { if (!cur() || !cur().adj || !ADJ.some(([k])=>cur().adj[k])) return; showOrig = true; render(); };
 const holdOff = () => { if (showOrig){ showOrig = false; render(); } };
 pv.addEventListener('pointerdown', holdOn);
 ['pointerup','pointerleave','pointercancel'].forEach(ev=>pv.addEventListener(ev, holdOff));
 pv.addEventListener('contextmenu', e=>e.preventDefault());
 $('#ovClose').addEventListener('click', ()=> $('#overlay').hidden = true);
-$('#dlBtn').addEventListener('click', ()=> download([cur()]));
 
 let tt = 0;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'), 2400); }

@@ -174,11 +174,18 @@ button{-webkit-user-select:none;user-select:none}
 .stage.drop{outline:2px dashed var(--accent);outline-offset:-12px;border-radius:16px}
 #pv{touch-action:none}
 .spacer.hint{flex:1}
-/* 手勢提示卡 */
-.gest{display:flex;gap:10px}
-.g{flex:1;min-width:0;background:var(--fill);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);line-height:1.35}
-.g svg{color:var(--accent);flex:0 0 auto}
-.g b{color:var(--fg);font-weight:600;font-size:14px}
+/* 關閉鈕：灰色 X（完成編輯才用橘色打勾） */
+.done.x{background:var(--fill2);color:var(--fg)}
+/* 手勢說明視窗 */
+.tipwrap{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:24px}
+.tipcard{width:100%;max-width:340px;background:var(--surface);border-radius:22px;padding:14px 16px 20px 20px;box-shadow:0 0 0 1px var(--line),0 16px 48px rgba(0,0,0,.6);animation:pop .2s ease-out}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
+.tiphead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.tiphead h2{margin:0;font-size:18px;font-weight:700}
+.tipcard .hnote{margin:14px 0 0}
+.hfig figcaption{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hfig small{font-size:12px;color:var(--muted)}
+.hfig b{font-size:15px;font-weight:600}
 .sizeinfo{margin:-6px 0 0 68px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 /* 使用說明 */
 .sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
@@ -198,7 +205,7 @@ button{-webkit-user-select:none;user-select:none}
 .hfig{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
 .hnote{margin:8px 0 4px;font-size:13px;color:var(--muted);text-align:center}
 .hfoot{margin:24px 0 0;text-align:center;font-size:12px;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){.sheet-card{animation:none}}
+@media (prefers-reduced-motion:reduce){.sheet-card,.tipcard{animation:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -235,8 +242,15 @@ button{-webkit-user-select:none;user-select:none}
 </div>
 <div id="help" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="sheet-card">
-    <div class="sheet-head"><h2 id="helpTitle">使用說明</h2><button type="button" class="done" id="helpClose" aria-label="關閉"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>
+    <div class="sheet-head"><h2 id="helpTitle">使用說明</h2><button type="button" class="done x" id="helpClose" aria-label="關閉"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>
     <div class="sheet-body" id="helpBody"></div>
+  </div>
+</div>
+<div id="tip" class="tipwrap" hidden role="dialog" aria-modal="true" aria-labelledby="tipTitle">
+  <div class="tipcard">
+    <div class="tiphead"><h2 id="tipTitle"></h2><button type="button" class="done x" id="tipClose" aria-label="關閉"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>
+    <div class="hfigs" id="tipFigs"></div>
+    <p class="hnote">之後可以從右上角的問號再看一次</p>
   </div>
 </div>
 <div id="toast"></div>
@@ -1140,7 +1154,7 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-const APP_VER = 'v31';
+const APP_VER = 'v32';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
@@ -1151,9 +1165,19 @@ const GROUPS = {
   save:  { name:'保存', icon:IC('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'), tabs:[['out','保存']], primary:true }
 };
 const lastTab = {};
-const ICO_DRAG = '<svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="16" r="4.5" fill="currentColor" fill-opacity=".25"/><path d="M16 3v6M16 23v6M3 16h6M23 16h6"/><path d="M13 6l3-3 3 3M13 26l3 3 3-3M6 13l-3 3 3 3M26 13l3 3-3 3"/></svg>';
-const ICO_PINCH = '<svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="20" r="3.5" fill="currentColor" fill-opacity=".25"/><circle cx="20" cy="12" r="3.5" fill="currentColor" fill-opacity=".25"/><path d="M8.5 23.5L4 28M4 23.5V28h4.5M23.5 8.5L28 4M23.5 4H28v4.5"/></svg>';
-const gestCard = (a, b) => `<div class="gest"><div class="g">${ICO_DRAG}<span>單指拖曳<br><b>${a}</b></span></div><div class="g">${ICO_PINCH}<span>雙指開合<br><b>${b}</b></span></div></div>`;
+/* 手勢示意圖（使用說明與手勢說明視窗共用） */
+const PHONE = inner => `<svg viewBox="0 0 120 150" width="120" height="150" aria-hidden="true"><rect x="10" y="4" width="100" height="142" rx="14" fill="var(--fill)"/><rect x="22" y="18" width="76" height="86" rx="3" fill="#6a7fa8"/><path d="M22 90l20-18 14 12 12-9 30 24v5H22z" fill="#3b2a33"/><circle cx="80" cy="38" r="7" fill="#f4c38a"/><rect x="22" y="104" width="76" height="18" fill="#fff"/><rect x="28" y="110" width="20" height="5" rx="2" fill="#222"/><rect x="58" y="110" width="34" height="5" rx="2" fill="#999"/>${inner}</svg>`;
+const FINGER = (x, y) => `<circle cx="${x}" cy="${y}" r="9" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>`;
+const STROKE = d => `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>`;
+const FIG = {
+  drag:      PHONE(FINGER(60,60) + STROKE('M60 44v-8M60 76v8M44 60h-8M76 60h8')),
+  pinch:     PHONE(FINGER(46,74) + FINGER(76,46) + STROKE('M38 82l-8 8M84 38l8-8')),
+  dragText:  PHONE(FINGER(60,113) + STROKE('M60 97v-8M60 129v8M44 113h-8M76 113h8')),
+  pinchText: PHONE(FINGER(42,118) + FINGER(78,108) + STROKE('M33 122l-8 4M87 104l8-4'))
+};
+const figure = (svg, a, b) => `<figure class="hfig">${svg}<figcaption><small>${a}</small><b>${b}</b></figcaption></figure>`;
+const ICO_X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+const ICO_CHECK = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const GEAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 const fmtA = v => { v = +v||0; return (v>0?'+':'')+v; };
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1177,7 +1201,9 @@ function renderTabs(){
   const g = GROUPS[group];
   bar.hidden = true; tabs.hidden = false; pnl.hidden = false;
   tabs.innerHTML = (g.tabs.length > 1 ? `<div class="seg" role="tablist">${g.tabs.map(([k,l])=>`<button type="button" role="tab" aria-selected="${k===tab}" class="tab${k===tab?' on':''}" data-tab="${k}">${l}</button>`).join('')}</div>` : `<span class="tabtitle">${g.name}</span>`)
-    + `<button type="button" class="done" data-done="1" aria-label="完成"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`;
+    + (group === 'save'
+      ? `<button type="button" class="done x" data-done="1" aria-label="關閉">${ICO_X}</button>`
+      : `<button type="button" class="done" data-done="1" aria-label="完成">${ICO_CHECK}</button>`);
 }
 function renderStrip(){
   const st = $('#strip');
@@ -1209,7 +1235,6 @@ function renderPanel(){
       break;
     case 'ratio':
       h = `<div class="row"><label>比例</label>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio) + `</div>`
-        + gestCard('移動照片','放大縮小')
         + slider('photoScale','照片大小',0.6,1,0.01)
         + `<div class="acts"><button type="button" class="btn sm" data-act="resetCrop">重設</button></div>`;
       break;
@@ -1269,8 +1294,7 @@ function renderPanel(){
         + `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`;
       break;
     case 'pos':
-      h = gestCard('移動文字','文字大小')
-        + slider('padScale','邊距',0.2,3,0.05) + slider('gapScale','間距',0.3,3,0.05)
+      h = slider('padScale','邊距',0.2,3,0.05) + slider('gapScale','間距',0.3,3,0.05)
         + slider('lineGap','行距',0.3,2.5,0.05)
         + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button></div>`;
       break;
@@ -1323,12 +1347,12 @@ function refreshAll(){ renderTabs(); renderStrip(); renderPanel(); render(); ren
 /* ---------- 事件 ---------- */
 $('#tabs').addEventListener('click', e=>{
   if (e.target.closest('[data-done]')){ group = null; renderTabs(); renderPanel(); return; }
-  const b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; lastTab[group]=tab; renderTabs(); renderPanel();
+  const b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; lastTab[group]=tab; renderTabs(); renderPanel(); maybeTip();
 });
 $('#bar').addEventListener('click', e=>{
   const b=e.target.closest('[data-group]'); if(!b) return;
   group = b.dataset.group; tab = lastTab[group] || GROUPS[group].tabs[0][0];
-  renderTabs(); renderPanel();
+  renderTabs(); renderPanel(); maybeTip();
 });
 $('#strip').addEventListener('click', e=>{
   const dl = e.target.closest('[data-del]');
@@ -1703,9 +1727,6 @@ pv.addEventListener('pointerleave', e=>{ if (!ptrs.has(e.pointerId)) holdOff(); 
 /* 使用說明 */
 function helpHTML(){
   const G = GROUPS, row = (ic, t, d) => `<div class="hrow"><div class="hic">${ic}</div><div><h3>${t}</h3><p>${d}</p></div></div>`;
-  const mini = (title, svg) => `<figure class="hfig">${svg}<figcaption>${title}</figcaption></figure>`;
-  const phone = inner => `<svg viewBox="0 0 120 150" width="120" height="150" aria-hidden="true"><rect x="10" y="4" width="100" height="142" rx="14" fill="var(--fill)"/><rect x="22" y="18" width="76" height="86" rx="3" fill="#6a7fa8"/><path d="M22 90l20-18 14 12 12-9 30 24v5H22z" fill="#3b2a33"/><circle cx="80" cy="38" r="7" fill="#f4c38a"/><rect x="22" y="104" width="76" height="18" fill="#fff"/><rect x="28" y="110" width="20" height="5" rx="2" fill="#222"/><rect x="58" y="110" width="34" height="5" rx="2" fill="#999"/>${inner}</svg>`;
-  const finger = (x, y) => `<circle cx="${x}" cy="${y}" r="9" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>`;
   return `
     <p class="hlead">三個步驟就能完成：選照片、挑版型、保存。</p>
     <section><h4>開始</h4>
@@ -1720,8 +1741,8 @@ function helpHTML(){
     </section>
     <section><h4>用手指調整</h4>
       <div class="hfigs">
-        ${mini('單指拖曳：移動', phone(finger(60,60) + '<path d="M60 44v-8M60 76v8M44 60h-8M76 60h8" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>'))}
-        ${mini('雙指開合：縮放', phone(finger(46,74) + finger(76,46) + '<path d="M38 82l-8 8M84 38l8-8" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>'))}
+        ${figure(FIG.drag, '單指拖曳', '移動')}
+        ${figure(FIG.pinch, '雙指開合', '縮放')}
       </div>
       <p class="hnote">在「照片 → 比例・裁切」調整照片；在「外觀 → 位置」調整文字。</p>
       ${row(IC('<path d="M8 7h8M8 12h8M8 17h5"/><rect x="4" y="3" width="16" height="18" rx="3"/>'), '點兩下數值歸零', '滑桿右邊的數字點兩下，就會回到預設值。')}
@@ -1736,7 +1757,29 @@ function helpHTML(){
 $('#helpBtn').addEventListener('click', ()=>{ $('#helpBody').innerHTML = helpHTML(); $('#help').hidden = false; $('#helpBody').scrollTop = 0; });
 $('#helpClose').addEventListener('click', ()=>{ $('#help').hidden = true; });
 $('#help').addEventListener('click', e=>{ if (e.target.id === 'help') $('#help').hidden = true; });
-document.addEventListener('keydown', e=>{ if (e.key === 'Escape') $('#help').hidden = true; });
+document.addEventListener('keydown', e=>{ if (e.key === 'Escape'){ $('#help').hidden = true; if (!$('#tip').hidden) closeTip(); } });
+/* 手勢說明視窗：第一次進入「比例・裁切」或「位置」時跳出，按 X 關閉後不再出現 */
+const TIPS = {
+  ratio: { t:'用手指調整照片', f:[[FIG.drag,'單指拖曳','移動照片'],[FIG.pinch,'雙指開合','放大縮小']] },
+  pos:   { t:'用手指調整文字', f:[[FIG.dragText,'單指拖曳','移動文字'],[FIG.pinchText,'雙指開合','文字大小']] }
+};
+let tipSeen = {}, tipKey = null;
+try { tipSeen = JSON.parse(localStorage.getItem('pf-tips') || '{}') || {}; } catch(e){}
+function maybeTip(){
+  const t = TIPS[tab];
+  if (!t || tipSeen[tab] || !$('#empty').hidden) return;
+  tipKey = tab;
+  $('#tipTitle').textContent = t.t;
+  $('#tipFigs').innerHTML = t.f.map(x=>figure(...x)).join('');
+  $('#tip').hidden = false;
+  $('#tipClose').focus();
+}
+function closeTip(){
+  $('#tip').hidden = true;
+  if (tipKey){ tipSeen[tipKey] = 1; tipKey = null; try { localStorage.setItem('pf-tips', JSON.stringify(tipSeen)); } catch(e){} }
+}
+$('#tipClose').addEventListener('click', closeTip);
+$('#tip').addEventListener('click', e=>{ if (e.target.id === 'tip') closeTip(); });
 $('#undoBtn').addEventListener('click', ()=>histGo(-1));
 $('#redoBtn').addEventListener('click', ()=>histGo(1));
 $('.mark').addEventListener('click', ()=>toast('參數相框 ' + APP_VER));

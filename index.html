@@ -437,7 +437,8 @@ function samplePhoto(){
   return c;
 }
 function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
-let sampleMode = false;
+let sampleMode = false, onboarded = false; // 引導畫面只在第一次出現，之後直接顯示範例照片
+try { onboarded = localStorage.getItem('pf-onboarded') === '1'; } catch(e){}
 async function addFiles(files){
   files = files.filter(f => /^image\//.test(f.type) || isHeic(f));
   if (!files.length) return;
@@ -460,7 +461,7 @@ async function addFiles(files){
   refreshAll(); histPush();
 }
 function initSample(){
-  sampleMode = false;
+  sampleMode = onboarded;
   const c = samplePhoto();
   const p = makePhoto('sample', c, c.width, c.height, {make:'SONY', model:'ILCE-7M4', focal:35, fnum:2.8, exposure:1/250, iso:100, date:'2026:10:10 17:42:00'}, c.toDataURL('image/jpeg',.6));
   p.data.location = '九份, 臺灣'; p.sample = true;
@@ -1154,7 +1155,7 @@ function render(){
 }
 
 /* ---------- 介面 ---------- */
-const APP_VER = 'v33';
+const APP_VER = 'v34';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
@@ -1334,6 +1335,7 @@ function drawPresetThumbs(){
 function renderEmpty(){
   const show = photos.length === 1 && photos[0].sample && !sampleMode;
   $('#empty').hidden = !show; pv.style.visibility = show ? 'hidden' : '';
+  if (!show && !onboarded){ onboarded = true; try { localStorage.setItem('pf-onboarded', '1'); } catch(e){} }
   if (show){ group = null; $('#bar').hidden = true; $('#panel').hidden = true; $('#tabs').hidden = true; $('#strip').hidden = true; }
 }
 function refreshAll(){ renderTabs(); renderStrip(); renderPanel(); render(); renderEmpty(); }

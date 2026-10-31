@@ -152,8 +152,27 @@ button{-webkit-user-select:none;user-select:none}
 /* 彈出層 */
 #overlay{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 #overlay img{max-width:100%;max-height:78vh;display:block}
-#toast{position:fixed;left:50%;bottom:calc(132px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(44,44,46,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:var(--fg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px);text-align:center}
+#toast{position:fixed;left:50%;top:calc(58px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:rgba(44,44,46,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:var(--fg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1}
+/* 導覽列右側、空狀態、其他 */
+.navr{justify-self:end;display:flex;gap:2px}
+.iconbtn{width:40px;height:40px;border:0;background:none;color:var(--fg);display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;padding:0}
+.iconbtn:disabled{opacity:.25;cursor:default}
+.mark{cursor:default}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px}
+.empty-card{max-width:340px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px}
+.empty-ic{width:76px;height:76px;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.empty h1{font-size:22px;font-weight:700;margin:4px 0 0;line-height:1.3;text-wrap:balance}
+.steps{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;color:var(--muted);font-size:13px}
+.steps span{background:var(--fill);border-radius:999px;padding:6px 12px}
+.steps b{color:var(--accent);font-weight:600;margin-right:6px}
+.btn.big{padding:13px 32px;font-size:16px}
+.linkbtn{background:none;border:0;color:var(--accent);font-size:15px;padding:6px;cursor:pointer}
+.val[data-reset]{cursor:pointer}
+.tpl .box.addbox{font-size:30px;font-weight:300;color:var(--muted);border:1.5px dashed var(--fill3);background:none}
+.stage.drop{outline:2px dashed var(--accent);outline-offset:-12px;border-radius:16px}
+#pv{touch-action:none}
+.spacer.hint{flex:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -163,11 +182,20 @@ button{-webkit-user-select:none;user-select:none}
     <label class="navbtn" for="fileIn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9.5" r="1.5"/></svg>選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
     <div class="mark">參數相框</div>
-    <span></span>
+    <div class="navr"><button type="button" id="undoBtn" class="iconbtn" aria-label="復原" disabled><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button type="button" id="redoBtn" class="iconbtn" aria-label="重做" disabled><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button></div>
   </header>
   <main class="stage">
     <canvas id="pv" width="10" height="10"></canvas>
     <span id="sampleTag" class="tag" hidden></span>
+    <div id="empty" class="empty" hidden>
+      <div class="empty-card">
+        <img src="icon-192.png" alt="" width="76" height="76" class="empty-ic">
+        <h1>替照片加上相框與拍攝參數</h1>
+        <div class="steps"><span><b>1</b>選照片</span><span><b>2</b>挑版型</span><span><b>3</b>保存</span></div>
+        <label for="fileIn" class="btn primary big">選擇照片</label>
+        <button type="button" class="linkbtn" id="trySample">先用範例看看</button>
+      </div>
+    </div>
   </main>
   <div id="strip" class="strip" hidden></div>
   <section id="panel" class="panel" hidden></section>
@@ -227,12 +255,32 @@ const DEF = {
   tpl:'bar4', ratio:'orig', bg:'#ffffff', border:5, barScale:1, radius:0, shadow:false,
   textScale:1, photoScale:1, font:'Jost', weight:'regular', quality:0.92, focalMode:'actual', dateFmt:'full',
   offX:0, offY:0, padScale:1, lineGap:1, gapScale:1, logoScale:1,
-  textShadow:true, logoShadow:'follow', logoVariant:{}, favs:[], author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
+  textShadow:true, logoShadow:'follow', logoVariant:{}, favs:[], presets:[], modelName:'friendly', keepExif:true, keepGps:false, outSize:'orig', outFmt:'jpg', author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
   show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true,quote:true}
 };
 let S = JSON.parse(JSON.stringify(DEF));
 try { const saved = JSON.parse(localStorage.getItem('exif-frame-settings')||'null'); if (saved) { S = Object.assign(S, saved); S.show = Object.assign({}, DEF.show, saved.show||{}); } } catch(e){}
-const save = () => { try { localStorage.setItem('exif-frame-settings', JSON.stringify(S)); } catch(e){} };
+const save = () => { try { localStorage.setItem('exif-frame-settings', JSON.stringify(S)); } catch(e){} histPush(); };
+/* 復原／重做：記錄整體設定＋目前照片的個別設定 */
+const H = { stack:[], pos:-1, lock:false, t:0 };
+function snapState(){ const p = photos[idx]; return JSON.stringify({ S, pd: p ? { data:p.data, adj:p.adj||{}, zoom:p.zoom||1, panX:p.panX||0, panY:p.panY||0, brandKey:p.brandKey } : null }); }
+function histPush(now){
+  if (H.lock) return; clearTimeout(H.t);
+  const go = ()=>{ const st = snapState(), ph = photos[idx], top = H.stack[H.pos]; if (top && top.s === st && top.p === ph) return;
+    H.stack = H.stack.slice(0, H.pos+1); H.stack.push({ s:st, p:ph }); if (H.stack.length > 80) H.stack.shift(); H.pos = H.stack.length-1; updUndo(); };
+  if (now) go(); else H.t = setTimeout(go, 350);
+}
+function histGo(d){
+  clearTimeout(H.t);
+  const ni = H.pos + d; if (ni < 0 || ni >= H.stack.length) return;
+  H.pos = ni; const e = H.stack[ni], o = JSON.parse(e.s); H.lock = true;
+  S = Object.assign(JSON.parse(JSON.stringify(DEF)), o.S); S.show = Object.assign({}, DEF.show, o.S.show||{});
+  try { localStorage.setItem('exif-frame-settings', JSON.stringify(S)); } catch(err){}
+  if (e.p && o.pd && photos.includes(e.p)){ Object.assign(e.p, { data:o.pd.data, adj:o.pd.adj, zoom:o.pd.zoom, panX:o.pd.panX, panY:o.pd.panY, brandKey:o.pd.brandKey }); e.p._proc = []; idx = photos.indexOf(e.p); }
+  loadFont(); renderStrip(); renderTabs(); renderPanel(); render(); renderEmpty();
+  H.lock = false; updUndo();
+}
+function updUndo(){ const u = document.getElementById('undoBtn'), r = document.getElementById('redoBtn'); if (!u) return; u.disabled = H.pos <= 0; r.disabled = H.pos >= H.stack.length-1; }
 
 /* ---------- EXIF 解析（JPEG） ---------- */
 function parseExif(buf){
@@ -243,7 +291,7 @@ function parseExif(buf){
     const marker = v.getUint16(off); off += 2;
     if ((marker & 0xFF00) !== 0xFF00) break;
     const len = v.getUint16(off);
-    if (marker === 0xFFE1 && v.getUint32(off+2) === 0x45786966) return readTiff(v, off+8);
+    if (marker === 0xFFE1 && v.getUint32(off+2) === 0x45786966){ const r = readTiff(v, off+8); r.seg = new Uint8Array(buf.slice(off-2, off+len)); return r; }
     if (marker === 0xFFDA) break;
     off += len;
   }
@@ -283,9 +331,13 @@ function readTiff(v, t){
   const ifd0 = readIFD(t + u32(t+4));
   const ex = ifd0[0x8769] ? readIFD(t + ifd0[0x8769]) : {};
   const iso = ex[0x8827];
+  const gps = ifd0[0x8825] ? readIFD(t + ifd0[0x8825]) : {};
+  const dms = (a, ref) => Array.isArray(a) && a.length >= 3 ? (a[0] + a[1]/60 + a[2]/3600) * (/[SW]/i.test(ref||'') ? -1 : 1) : null;
+  const lat = dms(gps[2], gps[1]), lon = dms(gps[4], gps[3]);
   return { make:ifd0[0x010F], model:ifd0[0x0110], exposure:ex[0x829A], fnum:ex[0x829D],
            iso:Array.isArray(iso)?iso[0]:iso, date:ex[0x9003]||ifd0[0x0132],
-           focal:ex[0x920A], focal35:ex[0xA405], lens:ex[0xA434] };
+           focal:ex[0x920A], focal35:ex[0xA405], lens:ex[0xA434],
+           lat: lat != null && lon != null && (lat || lon) ? lat : null, lon: lat != null && lon != null && (lat || lon) ? lon : null };
 }
 
 /* ---------- 數值格式 ---------- */
@@ -308,7 +360,7 @@ const strip = {
 let photos = [], idx = 0;
 const cur = () => photos[idx];
 function makePhoto(name, img, w, h, ex, thumb){
-  const model = (ex.model||'').trim();
+  const model = modelText(ex);
   return { name, img, w, h, ex, thumb, brandKey: detectBrand(ex.make), data:{
     model, lens:(ex.lens||'').trim(),
     focal: fmtFocal(ex, S.focalMode), fnum: fmtF(ex.fnum), shutter: fmtShutter(ex.exposure),
@@ -338,32 +390,192 @@ function samplePhoto(){
   return c;
 }
 function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
+let sampleMode = false;
 async function addFiles(files){
+  files = files.filter(f => /^image\//.test(f.type) || isHeic(f));
+  if (!files.length) return;
   if (photos.length === 1 && photos[0].sample) photos = [];
   const first = photos.length;
   let fails = 0;
   for (const f of files){
     try {
       const buf = await f.arrayBuffer();
-      let ex = {}; try { ex = parseExif(buf); } catch(e){}
-      const url = URL.createObjectURL(f);
-      const img = await loadImg(url);
+      const ex = await readMeta(f, buf);
+      const { img, url } = await decodeImage(f);
       photos.push(makePhoto(f.name.replace(/\.[^.]+$/,''), img, img.naturalWidth, img.naturalHeight, ex, url));
     } catch(e){ fails++; }
   }
-  if (fails) toast(`有 ${fails} 張讀不到，HEIC 請先轉成 JPG`);
-  if (!photos.length) { initSample(); return; }
+  if (fails) toast(`有 ${fails} 張無法讀取`);
+  if (!photos.length) { initSample(); refreshAll(); return; }
   idx = first < photos.length ? first : 0;
   const p = cur();
-  if (p && !Object.keys(p.ex).length) toast('這張照片沒有 EXIF，可以在各分頁手動輸入');
-  $('#sampleTag').hidden = true;
-  refreshAll();
+  if (p && !p.sample && !Object.keys(p.ex).length) toast('這張照片沒有拍攝資訊，可在「資訊」手動輸入');
+  refreshAll(); histPush();
 }
 function initSample(){
+  sampleMode = false;
   const c = samplePhoto();
   const p = makePhoto('sample', c, c.width, c.height, {make:'SONY', model:'ILCE-7M4', focal:35, fnum:2.8, exposure:1/250, iso:100, date:'2026:10:10 17:42:00'}, c.toDataURL('image/jpeg',.6));
   p.data.location = '九份, 臺灣'; p.sample = true;
   photos = [p]; idx = 0; $('#sampleTag').hidden = true;
+}
+
+/* ---------- 相機型號易讀名稱 ---------- */
+const ROMAN = ['','','II','III','IV','V','VI','VII','VIII'];
+function friendlyModel(make, model){
+  let m = String(model||'').trim(); if (!m) return m;
+  const first = String(make||'').trim().split(/\s+/)[0];
+  if (first && m.toUpperCase().startsWith(first.toUpperCase()+' ')) m = m.slice(first.length+1).trim();
+  let r;
+  if ((r = m.match(/^ILCE-(\d+)([A-Z]*?)M(\d)$/i))) return 'α' + r[1] + r[2].toUpperCase() + ' ' + ROMAN[+r[3]];
+  if ((r = m.match(/^ILCE-(\d+)([A-Z]*)$/i))) return 'α' + r[1] + r[2].toUpperCase();
+  if ((r = m.match(/^(?:DSC-)?((?:ZV-[A-Z0-9]+?)|(?:RX\d+[A-Z]*?))M(\d)$/i))) return r[1] + ' ' + ROMAN[+r[2]];
+  if ((r = m.match(/^DSC-(.+)$/i))) return r[1];
+  if ((r = m.match(/^DC-(.+?)M(\d)$/i))) return 'LUMIX ' + r[1] + ROMAN[+r[2]];
+  if ((r = m.match(/^DC-(.+)$/i))) return 'LUMIX ' + r[1];
+  if ((r = m.match(/^(Z ?\d+[a-z]*|Z ?fc?|D\d+)_(\d)$/i))) return r[1] + ROMAN[+r[2]];
+  return m;
+}
+const modelText = ex => S.modelName === 'raw' ? String(ex.model||'').trim() : friendlyModel(ex.make, ex.model);
+
+/* ---------- 輸出時寫回原始 EXIF ---------- */
+function exifForOutput(seg, keepGps){
+  const u = seg.slice(), v = new DataView(u.buffer), t = 10;
+  const le = v.getUint16(t) === 0x4949, u16 = o => v.getUint16(o, le), u32 = o => v.getUint32(o, le);
+  const ifd0 = t + u32(t+4), n = u16(ifd0);
+  for (let i=0; i<n; i++){
+    const e = ifd0 + 2 + i*12, tag = u16(e);
+    if (tag === 0x0112) v.setUint16(e+8, 1, le);                                   // 方向：成品已轉正
+    if (tag === 0x8825 && !keepGps){ const g = t + u32(e+8); if (g + 2 <= u.length) v.setUint16(g, 0, le); } // 清空 GPS
+  }
+  const nx = ifd0 + 2 + n*12; if (nx + 4 <= u.length) v.setUint32(nx, 0, le);      // 移除舊縮圖
+  return u;
+}
+async function withExif(blob, p){
+  if (!S.keepExif || !p.ex || !p.ex.seg || blob.type !== 'image/jpeg') return blob;
+  try {
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    if (buf[0] !== 0xFF || buf[1] !== 0xD8) return blob;
+    return new Blob([buf.subarray(0,2), exifForOutput(p.ex.seg, S.keepGps), buf.subarray(2)], { type:'image/jpeg' });
+  } catch(e){ return blob; }
+}
+
+/* ---------- 照片取色 ---------- */
+function paletteOf(p){
+  if (p._pal) return p._pal;
+  try {
+    const sc = 48 / Math.max(p.w, p.h), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(p.w*sc)); c.height = Math.max(1, Math.round(p.h*sc));
+    const x = c.getContext('2d', { willReadFrequently:true }); x.drawImage(p.img, 0, 0, c.width, c.height);
+    const d = x.getImageData(0, 0, c.width, c.height).data, px = [];
+    for (let i=0; i<d.length; i+=4) px.push([d[i], d[i+1], d[i+2]]);
+    const L = q => q[0]*.3 + q[1]*.59 + q[2]*.11, K = 6;
+    px.sort((a,b)=>L(a)-L(b));
+    let cen = Array.from({length:K}, (_,i)=>px[Math.floor((i+.5)*px.length/K)].slice()), cnt = [];
+    for (let it=0; it<8; it++){
+      const sum = cen.map(()=>[0,0,0]); cnt = new Array(K).fill(0);
+      for (const q of px){ let bi=0, bd=1e9; for (let j=0; j<K; j++){ const c2=cen[j], dd=(q[0]-c2[0])**2+(q[1]-c2[1])**2+(q[2]-c2[2])**2; if (dd<bd){ bd=dd; bi=j; } } sum[bi][0]+=q[0]; sum[bi][1]+=q[1]; sum[bi][2]+=q[2]; cnt[bi]++; }
+      cen = cen.map((c2,j)=> cnt[j] ? sum[j].map(s=>s/cnt[j]) : c2);
+    }
+    const hex = c2 => '#' + c2.map(v=>Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2,'0')).join('');
+    const out = [];
+    cen.map((c2,j)=>({c:c2, n:cnt[j]})).sort((a,b)=>b.n-a.n).forEach(o=>{ if (o.n && !out.some(e=>Math.hypot(e[0]-o.c[0], e[1]-o.c[1], e[2]-o.c[2]) < 42)) out.push(o.c); });
+    return (p._pal = out.slice(0,5).map(hex));
+  } catch(e){ return (p._pal = []); }
+}
+
+/* ---------- 我的樣式 ---------- */
+const STYLE_KEYS = ['tpl','ratio','bg','border','barScale','radius','shadow','textScale','photoScale','font','weight','offX','offY','padScale','lineGap','gapScale','logoScale','textShadow','logoShadow','logoVariant','logoColor','authorPrefix','focalMode','dateFmt','modelName','show'];
+const deep = o => JSON.parse(JSON.stringify(o));
+const styleOf = () => deep(Object.fromEntries(STYLE_KEYS.map(k=>[k, S[k]])));
+function applyStyleRaw(d){ STYLE_KEYS.forEach(k=>{ if (d && d[k] !== undefined) S[k] = deep(d[k]); }); if (!TPL[S.tpl]) S.tpl = 'bar4'; if (!FONT_SPEC.hasOwnProperty(S.font)) S.font = 'Jost'; }
+function applyStyle(d){ applyStyleRaw(d); photos.forEach(q=>{ if (q.ex.model) q.data.model = modelText(q.ex); if (q.ex.date) q.data.date = fmtDate(q.ex.date, S.dateFmt); const f = fmtFocal(q.ex, S.focalMode); if (f) q.data.focal = f; }); save(); loadFont().then(()=>render()); }
+const styleCode = d => 'PF1:' + btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+const parseCode = c => { const m = String(c||'').trim().match(/^PF1:([A-Za-z0-9+/=]+)$/); if (!m) return null; try { return JSON.parse(decodeURIComponent(escape(atob(m[1])))); } catch(e){ return null; } };
+let importOpen = false;
+function addPreset(name, data){ S.presets = (S.presets||[]).concat({ name, data }); save(); }
+function nextPresetName(){ const ns = (S.presets||[]).map(x=>+((x.name.match(/^樣式 (\d+)$/)||[])[1]||0)); return '樣式 ' + (Math.max(0, ...ns) + 1); }
+
+/* ---------- GPS 反查地點 ---------- */
+const geoCache = {};
+async function geoName(lat, lon){
+  const key = lat.toFixed(3) + ',' + lon.toFixed(3);
+  if (geoCache[key]) return geoCache[key];
+  const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&accept-language=zh-TW`, { headers:{ 'Accept':'application/json' } });
+  if (!r.ok) throw new Error('geo');
+  const a = (await r.json()).address || {};
+  const name = [a.city || a.town || a.village || a.county || a.state || '', a.country || ''].filter(Boolean).join(', ').replace(/台灣/g, '臺灣');
+  if (!name) throw new Error('geo');
+  return (geoCache[key] = name);
+}
+async function fillGps(list){
+  list = list.filter(q=>q.ex && q.ex.lat != null);
+  if (!list.length) return toast('這張照片沒有 GPS 座標');
+  let ok = 0;
+  for (let i=0; i<list.length; i++){
+    if (list.length > 1) toast(`正在查詢地點 ${i+1}/${list.length}…`);
+    try { list[i].data.location = await geoName(list[i].ex.lat, list[i].ex.lon); ok++; } catch(e){}
+    if (i < list.length-1) await new Promise(r=>setTimeout(r, 1100));
+  }
+  toast(ok ? `已帶入 ${ok} 張的地點` : '無法取得地點，請確認網路');
+  renderPanel(); render(); histPush();
+}
+
+/* ---------- 打包 ZIP（不壓縮） ---------- */
+const CRC_T = (()=>{ const t = new Uint32Array(256); for (let n=0; n<256; n++){ let c=n; for (let k=0; k<8; k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n] = c>>>0; } return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for (let i=0; i<u.length; i++) c = CRC_T[(c^u[i])&255] ^ (c>>>8); return (c^0xFFFFFFFF)>>>0; };
+function makeZip(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const d = new Date(), dt = (d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1), dd = ((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  for (const f of files){
+    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(10,dt,true); h.setUint16(12,dd,true);
+    h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true); h.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(h.buffer), nm, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(12,dt,true); c.setUint16(14,dd,true);
+    c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + sz;
+  }
+  const cd = central.reduce((a,b)=>a+b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cd,true); e.setUint32(16,off,true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type:'application/zip' });
+}
+
+/* ---------- 讀檔：HEIC 與其他格式 ---------- */
+const CDN = { exifr:'https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js', heic:'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js' };
+const scriptP = {};
+function loadScript(u){ return scriptP[u] || (scriptP[u] = new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = u; s.onload = res; s.onerror = ()=>{ delete scriptP[u]; rej(new Error('load')); }; document.head.appendChild(s); })); }
+const pad2 = n => String(n).padStart(2,'0');
+const isHeic = f => /image\/hei[cf]/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
+async function readMeta(f, buf){
+  let ex = {}; try { ex = parseExif(buf); } catch(e){}
+  if (Object.keys(ex).length || !(isHeic(f) || /image\/(tiff|webp|avif)/i.test(f.type))) return ex;
+  try {
+    await loadScript(CDN.exifr);
+    const t = await window.exifr.parse(f, { tiff:true, exif:true, gps:true });
+    if (!t) return {};
+    const d = t.DateTimeOriginal || t.CreateDate;
+    return { make:t.Make, model:t.Model, exposure:t.ExposureTime, fnum:t.FNumber, iso:Array.isArray(t.ISO) ? t.ISO[0] : t.ISO,
+      date: d instanceof Date ? `${d.getFullYear()}:${pad2(d.getMonth()+1)}:${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}` : d,
+      focal:t.FocalLength, focal35:t.FocalLengthIn35mmFormat, lens:t.LensModel, lat:t.latitude, lon:t.longitude };
+  } catch(e){ return {}; }
+}
+async function decodeImage(f){
+  const url = URL.createObjectURL(f);
+  try { return { img: await loadImg(url), url }; }
+  catch(e){
+    URL.revokeObjectURL(url);
+    if (!isHeic(f)) throw e;
+    toast('正在轉換 HEIC…');
+    await loadScript(CDN.heic);
+    let out = await window.heic2any({ blob:f, toType:'image/jpeg', quality:0.95 });
+    if (Array.isArray(out)) out = out[0];
+    const u2 = URL.createObjectURL(out);
+    return { img: await loadImg(u2), url: u2 };
+  }
 }
 
 /* ---------- 繪圖工具 ---------- */
@@ -899,17 +1111,19 @@ function compose(p, scale){
   const ox = (FW-W)/2, oy = (FH-H)/2;
   L.photo(ctx, ox, oy);
   ctx.save(); ctx.translate(S.offX*P.s/100, S.offY*P.s/100); L.info(ctx, ox, oy); ctx.restore();
+  c._P = P; c._k = k;
   return c;
 }
 
 /* ---------- 預覽 ---------- */
 const pv = $('#pv');
-let raf = 0;
+let raf = 0, lastView = null;
 function render(){
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(()=>{
     const p = cur(); if (!p) return;
     const c = compose(p, Math.min(1, 1500/Math.max(p.w,p.h)));
+    lastView = { P:c._P, k:c._k };
     pv.width = c.width; pv.height = c.height;
     pv.getContext('2d').drawImage(c,0,0);
   });
@@ -917,11 +1131,11 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-const APP_VER = 'v27';
+const APP_VER = 'v28';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
-  tpl:   { name:'版型', icon:IC('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 16h16M8 19h4"/>'), tabs:[['tpl','版型']] },
+  tpl:   { name:'版型', icon:IC('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 16h16M8 19h4"/>'), tabs:[['tpl','版型'],['preset','我的樣式']] },
   photo: { name:'照片', icon:IC('<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>'), tabs:[['ratio','比例・裁切'],['adj','調色']] },
   look:  { name:'外觀', icon:IC('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), tabs:[['frame','邊框'],['logo','Logo'],['font','字型'],['pos','位置']] },
   info:  { name:'資訊', icon:IC('<path d="M4 7V4h16v3M9 20h6M12 4v16"/>'), tabs:[['info','資訊']] },
@@ -934,11 +1148,11 @@ const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;',
 const chips = (name, opts, curv, num) => `<div class="chips">${opts.map(([v,l])=>`<button type="button" class="chip${String(curv)===String(v)?' on':''}" data-set="${name}" data-val="${v}"${num?' data-num="1"':''}>${l}</button>`).join('')}</div>`;
 const sw = k => `<button type="button" class="sw" data-show="${k}" aria-pressed="${!!S.show[k]}" aria-label="顯示"></button>`;
 const field = (k, label, ph) => `<div class="row"><label for="f_${k}">${label}</label><input type="text" id="f_${k}" data-field="${k}" value="${esc(cur().data[k])}" placeholder="${ph||''}">${sw(k)}</div>`;
-const slider = (name, label, min, max, step, unit='') => `<div class="row"><label for="r_${name}">${label}</label><input type="range" id="r_${name}" data-range="${name}" min="${min}" max="${max}" step="${step}" value="${S[name]}"><span class="val" id="v_${name}">${fmtVal(name)}${unit}</span></div>`;
+const slider = (name, label, min, max, step, unit='') => `<div class="row"><label for="r_${name}">${label}</label><input type="range" id="r_${name}" data-range="${name}" min="${min}" max="${max}" step="${step}" value="${S[name]}"><span class="val" id="v_${name}" data-reset="s:${name}">${fmtVal(name)}${unit}</span></div>`;
 const PCT = ['photoScale','barScale','textScale','padScale','lineGap','gapScale','logoScale'];
 const pv0 = k => ({zoom:1,panX:0,panY:0})[k];
 const fmtP = k => { const v = cur()[k] ?? pv0(k); return k==='zoom' ? Math.round(v*100)+'%' : (v>0?'+':'')+Math.round(v); };
-const pslider = (k, label, min, max, step) => `<div class="row"><label for="pr_${k}">${label}</label><input type="range" id="pr_${k}" data-prange="${k}" min="${min}" max="${max}" step="${step}" value="${cur()[k] ?? pv0(k)}"><span class="val" id="pv_${k}">${fmtP(k)}</span></div>`;
+const pslider = (k, label, min, max, step) => `<div class="row"><label for="pr_${k}">${label}</label><input type="range" id="pr_${k}" data-prange="${k}" min="${min}" max="${max}" step="${step}" value="${cur()[k] ?? pv0(k)}"><span class="val" id="pv_${k}" data-reset="p:${k}">${fmtP(k)}</span></div>`;
 const fmtVal = n => PCT.includes(n) ? Math.round(S[n]*100)+'%' : n==='quality' ? Math.round(S[n]*100) : n==='offX'||n==='offY' ? (S[n]>0?'+':'')+(+S[n]).toFixed(1) : S[n];
 
 function renderTabs(){
@@ -969,22 +1183,30 @@ function renderPanel(){
         h = `<div class="tpls">${order.map(k=>{ const t=TPL[k], f=favs.includes(k); return `<button type="button" class="tpl${k===S.tpl?' on':''}${f?' fav':''}" data-tpl="${k}"><div class="box" data-thumb="${k}"></div><span class="star${f?' on':''}" data-fav="${k}" role="button" aria-label="${f?'取消最愛':'加入最愛'}">${f?'★':'☆'}</span>${t.name}</button>`; }).join('')}</div>`
 ; }
       break;
+    case 'preset': {
+      const ps = S.presets || [];
+      h = `<div class="tpls"><button type="button" class="tpl" data-act="presetSave"><div class="box addbox">＋</div>儲存目前</button>${ps.map((x,i)=>`<button type="button" class="tpl" data-preset="${i}"><div class="box" data-pthumb="${i}"></div><span class="star" data-pdel="${i}" role="button" aria-label="刪除 ${esc(x.name)}">×</span>${esc(x.name)}</button>`).join('')}</div>`
+        + `<div class="acts"><button type="button" class="btn sm" data-act="presetCopy">複製樣式碼</button><button type="button" class="btn sm" data-act="presetPaste">貼上樣式碼</button></div>`
+        + (importOpen ? `<div class="row"><input type="text" id="impIn" placeholder="貼上 PF1: 開頭的樣式碼" autocomplete="off"><button type="button" class="btn sm" data-act="presetImport">套用</button></div>` : '');
+      break; }
     case 'adj':
       { const a = adjOf(p), cur_ = ADJ.find(x=>x[0]===adjKey) || ADJ[0];
         h = `<div class="adjs">${ADJ.map(([k,l])=>`<button type="button" class="adjchip${k===cur_[0]?' on':''}${a[k]?' set':''}" data-adjkey="${k}">${l}<i>${a[k]?fmtA(a[k]):''}</i></button>`).join('')}</div>`
-          + `<div class="row"><label for="a_${cur_[0]}">${cur_[1]}</label><input type="range" id="a_${cur_[0]}" data-adj="${cur_[0]}" min="-100" max="100" step="1" value="${a[cur_[0]]||0}"><span class="val" id="av_${cur_[0]}">${fmtA(a[cur_[0]])}</span></div>`
-          + `<div class="acts"><button type="button" class="btn sm" data-act="resetAdj">重設</button>${photos.length>1?'<button type="button" class="btn sm" data-act="adjAll">套用到全部</button>':''}<span class="hint">按住預覽可看原圖</span></div>`; }
+          + `<div class="row"><label for="a_${cur_[0]}">${cur_[1]}</label><input type="range" id="a_${cur_[0]}" data-adj="${cur_[0]}" min="-100" max="100" step="1" value="${a[cur_[0]]||0}"><span class="val" id="av_${cur_[0]}" data-reset="a:${cur_[0]}">${fmtA(a[cur_[0]])}</span></div>`
+          + `<div class="acts"><button type="button" class="btn sm" data-act="resetAdj">重設</button>${photos.length>1?'<button type="button" class="btn sm" data-act="adjAll">套用到全部</button>':''}<span class="hint">按住預覽看原圖・點兩下數值歸零</span></div>`; }
       break;
     case 'ratio':
       h = `<div class="row"><label>比例</label>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio) + `</div>`
         + pslider('zoom','放大',1,3,0.01) + pslider('panX','左右',-100,100,1) + pslider('panY','上下',-100,100,1)
         + slider('photoScale','照片',0.6,1,0.01)
-        + `<div class="acts"><button type="button" class="btn sm" data-act="resetCrop">重設</button></div>`;
+        + `<div class="acts"><button type="button" class="btn sm" data-act="resetCrop">重設</button><span class="hint">在預覽上拖曳移動、雙指縮放</span></div>`;
       break;
     case 'frame': {
       const sws = [['#ffffff','白'],['#2a2a2a','深灰'],['#000000','黑']];
-      const isCustom = S.bg !== 'blur' && !sws.some(([c])=>c===S.bg);
-      h = `<div class="row"><label>顏色</label><div class="swatches">${sws.map(([c,l])=>`<button type="button" class="swatch${S.bg===c?' on':''}" style="background:${c}" data-set="bg" data-val="${c}" aria-label="${l}"></button>`).join('')}<button type="button" class="swatch blur${S.bg==='blur'?' on':''}" data-set="bg" data-val="blur" aria-label="照片模糊"></button><label class="swatch custom${isCustom?' on':''}" style="${isCustom?'background:'+S.bg:''}" aria-label="自訂顏色"><input type="color" id="bgColor" value="${isCustom?S.bg:'#c8b8a0'}"></label></div></div>`;
+      const pal = paletteOf(p);
+      const isCustom = S.bg !== 'blur' && !sws.some(([c])=>c===S.bg) && !pal.includes(S.bg);
+      h = `<div class="row"><label>顏色</label><div class="swatches">${sws.map(([c,l])=>`<button type="button" class="swatch${S.bg===c?' on':''}" style="background:${c}" data-set="bg" data-val="${c}" aria-label="${l}"></button>`).join('')}<button type="button" class="swatch blur${S.bg==='blur'?' on':''}" data-set="bg" data-val="blur" aria-label="照片模糊"></button><label class="swatch custom${isCustom?' on':''}" style="${isCustom?'background:'+S.bg:''}" aria-label="自訂顏色"><input type="color" id="bgColor" value="${isCustom?S.bg:'#c8b8a0'}"></label></div></div>`
+        + (pal.length ? `<div class="row"><label>取色</label><div class="swatches">${pal.map(c=>`<button type="button" class="swatch${S.bg===c?' on':''}" style="background:${c}" data-set="bg" data-val="${c}" aria-label="照片色 ${c}"></button>`).join('')}</div></div>` : '');
       if (TPL[S.tpl].frame) h += slider('border','寬度',0,15,0.5) + slider('radius','圓角',0,10,0.5);
       h += slider('barScale','資訊區',0.6,1.8,0.05);
       if (TPL[S.tpl].frame) h += `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="shadow" aria-pressed="${S.shadow}" aria-label="照片陰影"></button></div>`;
@@ -1019,7 +1241,12 @@ function renderPanel(){
         h += field(infoKey, lab[infoKey], ph[infoKey]);
         if (infoKey === 'focal') h += chips('focalMode', [['actual','實際焦段'],['equiv','等效 35mm']], S.focalMode);
         if (infoKey === 'date') h += chips('dateFmt', [['full','2026.10.18 20:40'],['date','2026.10.18'],['slash','2026/10/18 20:40']], S.dateFmt);
-        if (infoKey === 'location' && photos.length > 1) h += `<div class="acts"><button type="button" class="btn sm" data-act="locAll">套用到全部照片</button></div>`;
+        if (infoKey === 'model') h += chips('modelName', [['friendly','易讀名稱'],['raw','原始型號']], S.modelName||'friendly');
+        if (infoKey === 'location'){
+          const gpsN = photos.filter(q=>q.ex && q.ex.lat != null).length, here = p.ex && p.ex.lat != null;
+          const btns = (here ? `<button type="button" class="btn sm" data-act="gpsOne">用 GPS 帶入</button>` : '') + (gpsN > 1 ? `<button type="button" class="btn sm" data-act="gpsAll">全部照片用 GPS</button>` : '') + (photos.length > 1 ? `<button type="button" class="btn sm" data-act="locAll">套用到全部照片</button>` : '');
+          if (btns) h += `<div class="acts">${btns}</div>`;
+        }
       }
       h = h.split('<div class="chips">').join('<div class="chips one">');
       break; }
@@ -1030,20 +1257,24 @@ function renderPanel(){
         + `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`;
       break;
     case 'pos':
-      h = slider('offY','上下',-8,8,0.1) + slider('offX','左右',-8,8,0.1)
+      h = slider('offY','上下',-15,15,0.1) + slider('offX','左右',-15,15,0.1)
         + slider('padScale','邊距',0.2,3,0.05) + slider('gapScale','間距',0.3,3,0.05)
         + slider('lineGap','行距',0.3,2.5,0.05)
-        + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button></div>`;
+        + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button><span class="hint">在預覽上拖曳移動、雙指縮放文字</span></div>`;
       break;
-    case 'out':
-      h = `<button type="button" class="btn primary block" data-act="dlOne">保存${photos.length>1?'這張':''}</button>`
-        + `<div class="acts"><button type="button" class="btn sm" data-act="share">分享</button>${photos.length>1?`<button type="button" class="btn sm" data-act="dlAll">全部保存（${photos.length}）</button>`:''}<button type="button" class="btn sm" data-act="preview">預覽</button>${CAN_DIR?`<button type="button" class="btn sm" data-act="pickDir">${dirHandle?'更換資料夾':'設定資料夾'}</button>`:''}</div>`
-        + slider('quality','品質',0.6,1,0.01)
-        + `<p class="foot">${saveWhereText()}<br>參數相框 ${APP_VER}</p>`;
-      break;
+    case 'out': {
+      const multi = photos.length > 1, hasGps = p.ex && p.ex.lat != null, jpg = S.outFmt !== 'png';
+      h = `<div class="acts"><button type="button" class="btn primary" data-act="dlOne">保存</button><button type="button" class="btn" data-act="share">分享</button><button type="button" class="btn" data-act="preview">預覽</button>${multi?`<button type="button" class="btn" data-act="dlAll">全部保存（${photos.length}）</button><button type="button" class="btn" data-act="zip">打包 ZIP</button>`:''}${CAN_DIR?`<button type="button" class="btn" data-act="pickDir">資料夾</button>`:''}</div>`
+        + `<div class="row"><label>尺寸</label>` + chips('outSize', [['orig','原圖'],['2048','長邊 2048'],['ig','IG 1080']], S.outSize||'orig') + `</div>`
+        + `<div class="row"><label>格式</label>` + chips('outFmt', [['jpg','JPG'],['png','PNG']], S.outFmt||'jpg') + `</div>`
+        + (jpg ? slider('quality','品質',0.6,1,0.01) : '')
+        + (jpg ? `<div class="row"><label>EXIF</label><span class="spacer hint">保留拍攝資訊</span><button type="button" class="sw" data-toggle="keepExif" aria-pressed="${!!S.keepExif}" aria-label="保留拍攝資訊"></button></div>` : '')
+        + (jpg && S.keepExif && hasGps ? `<div class="row"><label>GPS</label><span class="spacer hint">保留拍攝地點座標</span><button type="button" class="sw" data-toggle="keepGps" aria-pressed="${!!S.keepGps}" aria-label="保留 GPS"></button></div>` : '');
+      break; }
   }
   el.innerHTML = h;
   if (tab === 'tpl') drawTplThumbs();
+  if (tab === 'preset') drawPresetThumbs();
   if (tab === 'font') loadFontPreviews();
   if (tab === 'adj'){ const on = el.querySelector('.adjchip.on'); if (on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); }
 }
@@ -1059,7 +1290,23 @@ function drawTplThumbs(){
   });
   Object.assign(S, keep);
 }
-function refreshAll(){ renderTabs(); renderStrip(); renderPanel(); render(); }
+function drawPresetThumbs(){
+  const p = cur(); if (!p) return;
+  const keep = JSON.stringify(S);
+  document.querySelectorAll('[data-pthumb]').forEach(box=>{
+    const ps = (S.presets||[])[+box.dataset.pthumb]; if (!ps) return;
+    applyStyleRaw(ps.data); Object.assign(S, { ratio:'orig' });
+    box.appendChild(compose(p, 260/Math.max(p.w,p.h)));
+    S = JSON.parse(keep);
+  });
+  S = JSON.parse(keep);
+}
+function renderEmpty(){
+  const show = photos.length === 1 && photos[0].sample && !sampleMode;
+  $('#empty').hidden = !show; pv.style.visibility = show ? 'hidden' : '';
+  if (show){ group = null; $('#bar').hidden = true; $('#panel').hidden = true; $('#tabs').hidden = true; $('#strip').hidden = true; }
+}
+function refreshAll(){ renderTabs(); renderStrip(); renderPanel(); render(); renderEmpty(); }
 
 /* ---------- 事件 ---------- */
 $('#tabs').addEventListener('click', e=>{
@@ -1076,19 +1323,24 @@ $('#strip').addEventListener('click', e=>{
   if (dl){
     const i = +dl.dataset.del, gone = photos.splice(i, 1)[0];
     if (gone && gone.thumb && gone.thumb.startsWith('blob:')) setTimeout(()=>URL.revokeObjectURL(gone.thumb), 1000);
-    if (!photos.length){ initSample(); }
-    else if (idx > i || idx >= photos.length) idx = Math.max(0, idx-1);
-    renderStrip(); renderPanel(); render(); return;
+    if (!photos.length){ initSample(); refreshAll(); return; }
+    if (idx > i || idx >= photos.length) idx = Math.max(0, idx-1);
+    renderStrip(); renderPanel(); render(); histPush(); return;
   }
-  const b=e.target.closest('[data-photo]'); if(!b) return; idx=+b.dataset.photo; renderStrip(); renderPanel(); render(); });
+  const b=e.target.closest('[data-photo]'); if(!b) return; idx=+b.dataset.photo; renderStrip(); renderPanel(); render(); histPush(true); });
 $('#fileIn').addEventListener('change', e=>{ const f=[...e.target.files]; e.target.value=''; if (f.length) addFiles(f); });
 
 const panel = $('#panel');
 panel.addEventListener('click', async e=>{
+  const rv = e.target.closest('[data-reset]');
+  if (rv){ const now = Date.now(); if (rv._t && now - rv._t < 450){ rv._t = 0; resetVal(rv.dataset.reset); } else rv._t = now; return; }
+  const pd = e.target.closest('[data-pdel]');
+  if (pd){ e.stopPropagation(); S.presets.splice(+pd.dataset.pdel, 1); save(); renderPanel(); toast('已刪除，可按左上的復原找回'); return; }
   const fv = e.target.closest('[data-fav]');
   if (fv){ e.stopPropagation(); const k = fv.dataset.fav; S.favs = (S.favs||[]).filter(x=>TPL[x]); S.favs = S.favs.includes(k) ? S.favs.filter(x=>x!==k) : S.favs.concat(k); save(); renderPanel(); return; }
   const t = e.target.closest('button'); if (!t) return;
   const p = cur();
+  if (t.dataset.preset !== undefined){ applyStyle(S.presets[+t.dataset.preset].data); renderPanel(); render(); toast('已套用樣式'); return; }
   if (t.dataset.variant){ S.logoVariant = Object.assign({}, S.logoVariant, {[p.brandKey]: t.dataset.variant}); save(); renderPanel(); render(); return; }
   if (t.dataset.infokey){ infoKey = t.dataset.infokey; renderPanel(); const on = panel.querySelector('.adjchip.on'); if (on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); return; }
   if (t.dataset.adjkey){ adjKey = t.dataset.adjkey; renderPanel(); return; }
@@ -1098,12 +1350,13 @@ panel.addEventListener('click', async e=>{
     S[k] = v;
     if (k === 'dateFmt') photos.forEach(q=>{ if (q.ex.date) q.data.date = fmtDate(q.ex.date, v); });
     if (k === 'focalMode') photos.forEach(q=>{ const f = fmtFocal(q.ex, v); if (f) q.data.focal = f; });
+    if (k === 'modelName') photos.forEach(q=>{ if (q.ex.model) q.data.model = modelText(q.ex); });
     if (k === 'font') await loadFont();
     save(); renderPanel(); render(); return;
   }
   if (t.dataset.show){ const k=t.dataset.show; S.show[k]=!S.show[k]; t.setAttribute('aria-pressed', S.show[k]); { const c = panel.querySelector(`[data-infokey="${k}"]`); if (c) c.classList.toggle('off', !S.show[k]); } save(); render(); return; }
-  if (t.dataset.toggle){ const k=t.dataset.toggle; S[k]=!S[k]; t.setAttribute('aria-pressed', S[k]); save(); render(); return; }
-  if (t.dataset.brand){ p.brandKey = t.dataset.brand; renderPanel(); render(); return; }
+  if (t.dataset.toggle){ const k=t.dataset.toggle; S[k]=!S[k]; t.setAttribute('aria-pressed', S[k]); save(); if (k === 'keepExif') renderPanel(); render(); return; }
+  if (t.dataset.brand){ p.brandKey = t.dataset.brand; renderPanel(); render(); histPush(); return; }
   const act = t.dataset.act;
   if (act === 'logoOpts'){ logoOpts = !logoOpts; renderPanel(); return; }
   if (act === 'uploadLogo'){ logoTarget = p.brandKey; $('#logoIn').click(); }
@@ -1113,19 +1366,46 @@ panel.addEventListener('click', async e=>{
     if (customs.some(c=>c.key===k)){ customs = customs.filter(c=>c.key!==k); photos.forEach(q=>{ if(q.brandKey===k) q.brandKey = detectBrand(q.ex.make); }); }
     renderPanel(); render();
   }
-  else if (act === 'resetAdj'){ p.adj = {}; p._proc = []; renderPanel(); render(); }
-  else if (act === 'adjAll'){ photos.forEach(q=>{ q.adj = Object.assign({}, p.adj||{}); q._proc = []; }); toast('已套用到全部照片'); }
+  else if (act === 'resetAdj'){ p.adj = {}; p._proc = []; renderPanel(); render(); histPush(); }
+  else if (act === 'adjAll'){ photos.forEach(q=>{ q.adj = Object.assign({}, p.adj||{}); q._proc = []; }); toast('已套用到全部照片'); histPush(); }
   else if (act === 'resetCrop'){ Object.assign(p, {zoom:1,panX:0,panY:0}); S.photoScale = 1; save(); renderPanel(); render(); }
   else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1}); save(); renderPanel(); render(); }
   else if (act === 'pickDir'){ await pickDir(); renderPanel(); }
-  else if (act === 'locAll'){ photos.forEach(q=> q.data.location = p.data.location); toast('已套用到全部照片'); }
+  else if (act === 'locAll'){ photos.forEach(q=> q.data.location = p.data.location); toast('已套用到全部照片'); histPush(); }
   else if (act === 'dlOne') download([p]);
   else if (act === 'dlAll') download(photos);
+  else if (act === 'zip') downloadZip(photos);
+  else if (act === 'gpsOne') fillGps([p]);
+  else if (act === 'gpsAll') fillGps(photos);
+  else if (act === 'presetSave'){ addPreset(nextPresetName(), styleOf()); renderPanel(); toast('已儲存目前樣式'); }
+  else if (act === 'presetCopy'){
+    const code = styleCode(styleOf());
+    try { await navigator.clipboard.writeText(code); toast('已複製樣式碼，可傳給朋友'); }
+    catch(err){ importOpen = true; renderPanel(); const i = $('#impIn'); i.value = code; i.select(); toast('請長按複製這段樣式碼'); }
+  }
+  else if (act === 'presetPaste'){
+    let d = null; try { d = parseCode(await navigator.clipboard.readText()); } catch(err){}
+    if (d){ applyStyle(d); addPreset('匯入樣式', d); renderPanel(); render(); toast('已套用並加入我的樣式'); }
+    else { importOpen = true; renderPanel(); const i = $('#impIn'); if (i) i.focus(); }
+  }
+  else if (act === 'presetImport'){
+    const d = parseCode(($('#impIn')||{}).value);
+    if (!d) return toast('樣式碼格式不正確');
+    applyStyle(d); addPreset('匯入樣式', d); importOpen = false; renderPanel(); render(); toast('已套用並加入我的樣式');
+  }
   else if (act === 'share') share(p);
   else if (act === 'preview') preview(p);
 });
+function resetVal(r){
+  const [kind, k] = r.split(':'), p = cur();
+  if (kind === 's') S[k] = DEF[k];
+  else if (kind === 'p') p[k] = pv0(k);
+  else if (kind === 'a'){ adjOf(p)[k] = 0; }
+  save(); renderPanel(); render(); histPush();
+}
 panel.addEventListener('input', e=>{
   const t = e.target;
+  if (t.dataset.field || t.dataset.adj || t.dataset.prange) histPush();
   if (t.dataset.field){ cur().data[t.dataset.field] = t.value; render(); }
   else if (t.dataset.adj){ const k=t.dataset.adj; adjOf(cur())[k] = +t.value; $('#av_'+k).textContent = fmtA(t.value); const c = panel.querySelector(`[data-adjkey="${k}"]`); if (c){ c.classList.toggle('set', !!+t.value); c.querySelector('i').textContent = +t.value ? fmtA(t.value) : ''; } render(); }
   else if (t.dataset.prange){ const k=t.dataset.prange; cur()[k] = +t.value; $('#pv_'+k).textContent = fmtP(k); render(); }
@@ -1235,32 +1515,62 @@ $('#logoIn').addEventListener('change', e=>{
 });
 
 /* ---------- 輸出 ---------- */
-const toBlob = c => new Promise(r=>c.toBlob(r,'image/jpeg',S.quality));
+const ext = () => S.outFmt === 'png' ? '.png' : '.jpg';
 async function exportBlob(p){
   /* iPhone / iPad 的畫布上限約 1600 萬像素，超過會輸出失敗 */
   const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const MAX = IOS ? 16e6 : 40e6;
   let sc = 1; const area = p.w*p.h*1.25; if (area > MAX) sc = Math.sqrt(MAX/area);
-  let blob = await toBlob(compose(p, sc));
-  if (!blob) blob = await toBlob(compose(p, sc*0.6));
-  return blob;
+  if (S.outSize === '2048' || S.outSize === 'ig'){
+    const pr = compose(p, 0.1), fw = pr.width/0.1, fh = pr.height/0.1;
+    sc = Math.min(sc, S.outSize === 'ig' ? 1080/fw : 2048/Math.max(fw, fh));
+  }
+  const type = S.outFmt === 'png' ? 'image/png' : 'image/jpeg';
+  const enc = c => new Promise(r=>c.toBlob(r, type, S.quality));
+  /* 指定尺寸時精準縮到目標大小 */
+  const fit = c => {
+    if (S.outSize !== '2048' && S.outSize !== 'ig') return c;
+    const t = S.outSize === 'ig' ? 1080/c.width : 2048/Math.max(c.width, c.height);
+    if (t >= 1 || Math.abs(t - 1) < 1e-4) return c;
+    const o = document.createElement('canvas'); o.width = Math.round(c.width*t); o.height = Math.round(c.height*t);
+    const x = o.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, o.width, o.height);
+    return o;
+  };
+  if (S.outSize === '2048' || S.outSize === 'ig') sc *= 1.02;
+  let blob = await enc(fit(compose(p, sc)));
+  if (!blob) blob = await enc(fit(compose(p, sc*0.6)));
+  return blob ? withExif(blob, p) : blob;
+}
+async function downloadZip(list){
+  const files = [], used = new Set();
+  for (let i=0; i<list.length; i++){
+    toast(`正在打包 ${i+1}/${list.length}…`);
+    const b = await exportBlob(list[i]); if (!b) continue;
+    let n = outBase(list[i]) + ext(), k = 2; while (used.has(n)) n = outBase(list[i]) + '_' + (k++) + ext(); used.add(n);
+    files.push({ name:n, data:new Uint8Array(await b.arrayBuffer()) });
+  }
+  if (!files.length) return toast('沒有可打包的照片');
+  const d = new Date(), name = `Frame_${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}.zip`;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(makeZip(files)); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 8000);
+  toast(`已打包 ${files.length} 張`);
 }
 const outBase = p => (p.sample ? 'Sample' : p.name) + '_Frame';
 /* 不覆蓋：已存在就改成 _Frame_2、_Frame_3… */
 async function uniqueInDir(base){
   for (let n=1; n<1000; n++){
-    const name = base + (n>1 ? '_'+n : '') + '.jpg';
+    const name = base + (n>1 ? '_'+n : '') + ext();
     try { await dirHandle.getFileHandle(name); } catch(e){ return name; }
   }
-  return base + '_' + Date.now() + '.jpg';
+  return base + '_' + Date.now() + ext();
 }
 function uniqueDownload(base){
   let m = {}; try { m = JSON.parse(localStorage.getItem('exif-frame-names')||'{}'); } catch(e){}
   const n = (m[base]||0) + 1; m[base] = n;
   try { localStorage.setItem('exif-frame-names', JSON.stringify(m)); } catch(e){}
-  return base + (n>1 ? '_'+n : '') + '.jpg';
+  return base + (n>1 ? '_'+n : '') + ext();
 }
-const outName = p => outBase(p) + '.jpg';
+const outName = p => outBase(p) + ext();
 /* 儲存位置：瀏覽器支援資料夾存取時直接寫進 Frame 資料夾，否則走一般下載 */
 const CAN_DIR = 'showDirectoryPicker' in window;
 let dirHandle = null;
@@ -1292,9 +1602,9 @@ async function dirReady(){
 async function download(list){
   let useDir = false;
   if (CAN_DIR){ useDir = await dirReady(); if (!useDir) useDir = await pickDir(); }
-  toast(list.length > 1 ? `正在保存 ${list.length} 張…` : '正在保存…');
-  let ok = 0;
+  let ok = 0, i = 0;
   for (const p of list){
+    toast(list.length > 1 ? `正在保存 ${++i}/${list.length}…` : '正在保存…');
     const blob = await exportBlob(p);
     if (!blob){ toast('圖片太大無法輸出'); continue; }
     let name;
@@ -1318,7 +1628,7 @@ async function download(list){
 async function share(p){
   const blob = await exportBlob(p);
   if (!blob) return toast('圖片太大無法輸出');
-  const file = new File([blob], outName(p), {type:'image/jpeg'});
+  const file = new File([blob], outName(p), {type:blob.type});
   try {
     if (navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file]});
     else { toast('這個瀏覽器不支援分享，改用預覽'); preview(p, blob); }
@@ -1332,8 +1642,59 @@ async function preview(p, blob){
 }
 const holdOn = e => { if (!cur() || !cur().adj || !ADJ.some(([k])=>cur().adj[k])) return; showOrig = true; render(); };
 const holdOff = () => { if (showOrig){ showOrig = false; render(); } };
-pv.addEventListener('pointerdown', holdOn);
-['pointerup','pointerleave','pointercancel'].forEach(ev=>pv.addEventListener(ev, holdOff));
+/* 預覽手勢：裁切分頁拖曳平移、雙指縮放；位置分頁拖曳文字、雙指調整文字大小 */
+const ptrs = new Map(); let gst = null;
+const dragMode = () => !group ? null : tab === 'ratio' ? 'crop' : tab === 'pos' ? 'info' : null;
+function gBase(){
+  const p = cur(), pts = [...ptrs.values()];
+  gst = { m:dragMode(), pts:pts.map(q=>({x:q.x, y:q.y})), zoom:p.zoom||1, panX:p.panX||0, panY:p.panY||0, offX:S.offX, offY:S.offY, ts:S.textScale,
+          d0: pts.length > 1 ? Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) : 0 };
+}
+pv.addEventListener('pointerdown', e=>{
+  if (!dragMode()){ holdOn(e); return; }
+  e.preventDefault(); try { pv.setPointerCapture(e.pointerId); } catch(err){}
+  ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY }); gBase();
+});
+pv.addEventListener('pointermove', e=>{
+  if (!gst || !ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  const p = cur(), pts = [...ptrs.values()], kc = pv.width / pv.getBoundingClientRect().width;
+  if (pts.length >= 2 && gst.d0){
+    const r = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) / gst.d0;
+    if (gst.m === 'crop') p.zoom = Math.min(3, Math.max(1, gst.zoom * r));
+    else S.textScale = Math.min(1.6, Math.max(0.6, gst.ts * r));
+  } else if (pts.length === 1){
+    const dx = (pts[0].x - gst.pts[0].x) * kc, dy = (pts[0].y - gst.pts[0].y) * kc;
+    if (gst.m === 'info'){
+      const sz = lastView ? lastView.P.s : 1000;
+      S.offX = Math.max(-15, Math.min(15, gst.offX + dx/sz*100));
+      S.offY = Math.max(-15, Math.min(15, gst.offY + dy/sz*100));
+    } else if (lastView){
+      const P = lastView.P, k = lastView.k || 1, sw = P.crop[2]/k, sh = P.crop[3]/k, spx = sw / P.w;
+      const rx = (p.w - sw)/2, ry = (p.h - sh)/2;
+      if (rx > 0.5) p.panX = Math.max(-100, Math.min(100, gst.panX - dx*spx/rx*100));
+      if (ry > 0.5) p.panY = Math.max(-100, Math.min(100, gst.panY - dy*spx/ry*100));
+    }
+  }
+  render();
+});
+const gEnd = e => {
+  if (!ptrs.has(e.pointerId)){ holdOff(); return; }
+  ptrs.delete(e.pointerId);
+  if (ptrs.size){ gBase(); return; }
+  gst = null; save(); renderPanel();
+};
+['pointerup','pointercancel'].forEach(ev=>pv.addEventListener(ev, gEnd));
+pv.addEventListener('pointerleave', e=>{ if (!ptrs.has(e.pointerId)) holdOff(); });
+$('#undoBtn').addEventListener('click', ()=>histGo(-1));
+$('#redoBtn').addEventListener('click', ()=>histGo(1));
+$('.mark').addEventListener('click', ()=>toast('參數相框 ' + APP_VER));
+$('#trySample').addEventListener('click', ()=>{ sampleMode = true; refreshAll(); });
+/* 電腦版：拖放照片進來 */
+const stageEl = $('.stage');
+['dragenter','dragover'].forEach(ev=>window.addEventListener(ev, e=>{ e.preventDefault(); stageEl.classList.add('drop'); }));
+['dragleave','drop'].forEach(ev=>window.addEventListener(ev, e=>{ e.preventDefault(); if (ev === 'drop' || e.target === document.documentElement) stageEl.classList.remove('drop'); }));
+window.addEventListener('drop', e=>{ const f = [...(e.dataTransfer && e.dataTransfer.files || [])]; if (f.length) addFiles(f); });
 pv.addEventListener('contextmenu', e=>e.preventDefault());
 $('#ovClose').addEventListener('click', ()=> $('#overlay').hidden = true);
 
@@ -1365,6 +1726,7 @@ function loadFontPreviews(){
   try { await Promise.race([ Promise.all(['500 24px "Jost"','700 24px "Jost"'].map(f=>document.fonts.load(f))), new Promise(r=>setTimeout(r,2500)) ]); } catch(e){}
   await loadFont();
   refreshAll();
+  histPush(true);
 })();
 })();
 </script>

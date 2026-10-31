@@ -1,7 +1,7 @@
 /* 參數相框 離線快取
    - 主程式：先抓網路（拿到最新版），沒網路才用快取
    - 字體與圖示：先用快取，背景更新 */
-const CACHE = 'photo-frame-v27';
+const CACHE = 'photo-frame-v28';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -33,7 +33,7 @@ self.addEventListener('fetch', e => {
   }
 
   // 同站資源與 Google Fonts：快取優先，背景更新
-  const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+  const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.hostname === 'cdn.jsdelivr.net';
   if (url.origin === location.origin || fonts) {
     e.respondWith(
       caches.match(req).then(hit => {

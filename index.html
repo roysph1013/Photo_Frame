@@ -174,6 +174,31 @@ button{-webkit-user-select:none;user-select:none}
 .stage.drop{outline:2px dashed var(--accent);outline-offset:-12px;border-radius:16px}
 #pv{touch-action:none}
 .spacer.hint{flex:1}
+/* 手勢提示卡 */
+.gest{display:flex;gap:10px}
+.g{flex:1;min-width:0;background:var(--fill);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);line-height:1.35}
+.g svg{color:var(--accent);flex:0 0 auto}
+.g b{color:var(--fg);font-weight:600;font-size:14px}
+.sizeinfo{margin:-6px 0 0 68px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* 使用說明 */
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet-card{width:100%;max-width:560px;max-height:92%;background:var(--surface);border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px);animation:up .25s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:16px max(20px,env(safe-area-inset-right,0px)) 8px max(20px,env(safe-area-inset-left,0px))}
+.sheet-head h2{margin:0;font-size:22px;font-weight:700}
+.sheet-body{overflow-y:auto;padding:4px max(20px,env(safe-area-inset-right,0px)) 24px max(20px,env(safe-area-inset-left,0px))}
+.sheet-body section{margin-top:22px}
+.sheet-body h4{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.hlead{margin:4px 0 0;font-size:15px;color:var(--fg)}
+.hrow{display:flex;gap:14px;align-items:flex-start;padding:10px 0}
+.hic{flex:0 0 auto;width:44px;height:44px;border-radius:12px;background:var(--fill);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.hrow h3{margin:2px 0 3px;font-size:16px;font-weight:600}
+.hrow p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+.hfigs{display:flex;gap:16px;justify-content:center}
+.hfig{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
+.hnote{margin:8px 0 4px;font-size:13px;color:var(--muted);text-align:center}
+.hfoot{margin:24px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.sheet-card{animation:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -183,7 +208,7 @@ button{-webkit-user-select:none;user-select:none}
     <label class="navbtn" for="fileIn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9.5" r="1.5"/></svg>選照片</label>
     <input id="fileIn" type="file" accept="image/*" multiple hidden>
     <div class="mark">參數相框</div>
-    <div class="navr"><button type="button" id="undoBtn" class="iconbtn" aria-label="復原" disabled><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button type="button" id="redoBtn" class="iconbtn" aria-label="重做" disabled><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button></div>
+    <div class="navr"><button type="button" id="helpBtn" class="iconbtn" aria-label="使用說明"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.4-2.7 4"/><circle cx="12" cy="17.6" r=".6" fill="currentColor"/></svg></button><button type="button" id="undoBtn" class="iconbtn" aria-label="復原" disabled><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button type="button" id="redoBtn" class="iconbtn" aria-label="重做" disabled><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button></div>
   </header>
   <main class="stage">
     <canvas id="pv" width="10" height="10"></canvas>
@@ -207,6 +232,12 @@ button{-webkit-user-select:none;user-select:none}
   <img id="ovImg" alt="成品預覽">
   <p class="hint">長按圖片即可存到相簿</p>
   <button class="btn" id="ovClose" type="button">關閉</button>
+</div>
+<div id="help" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2 id="helpTitle">使用說明</h2><button type="button" class="done" id="helpClose" aria-label="關閉"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>
+    <div class="sheet-body" id="helpBody"></div>
+  </div>
 </div>
 <div id="toast"></div>
 <input id="logoIn" type="file" accept="image/png,image/svg+xml,image/webp,image/jpeg" hidden>
@@ -1109,7 +1140,7 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-const APP_VER = 'v30';
+const APP_VER = 'v31';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
@@ -1120,6 +1151,9 @@ const GROUPS = {
   save:  { name:'保存', icon:IC('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'), tabs:[['out','保存']], primary:true }
 };
 const lastTab = {};
+const ICO_DRAG = '<svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="16" r="4.5" fill="currentColor" fill-opacity=".25"/><path d="M16 3v6M16 23v6M3 16h6M23 16h6"/><path d="M13 6l3-3 3 3M13 26l3 3 3-3M6 13l-3 3 3 3M26 13l3 3-3 3"/></svg>';
+const ICO_PINCH = '<svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="20" r="3.5" fill="currentColor" fill-opacity=".25"/><circle cx="20" cy="12" r="3.5" fill="currentColor" fill-opacity=".25"/><path d="M8.5 23.5L4 28M4 23.5V28h4.5M23.5 8.5L28 4M23.5 4H28v4.5"/></svg>';
+const gestCard = (a, b) => `<div class="gest"><div class="g">${ICO_DRAG}<span>單指拖曳<br><b>${a}</b></span></div><div class="g">${ICO_PINCH}<span>雙指開合<br><b>${b}</b></span></div></div>`;
 const GEAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 const fmtA = v => { v = +v||0; return (v>0?'+':'')+v; };
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1175,9 +1209,9 @@ function renderPanel(){
       break;
     case 'ratio':
       h = `<div class="row"><label>比例</label>` + chips('ratio', [['orig','原始'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['3:2','3:2'],['16:9','16:9']], S.ratio) + `</div>`
-        + pslider('zoom','放大',1,3,0.01) + pslider('panX','左右',-100,100,1) + pslider('panY','上下',-100,100,1)
-        + slider('photoScale','照片',0.6,1,0.01)
-        + `<div class="acts"><button type="button" class="btn sm" data-act="resetCrop">重設</button><span class="hint">在預覽上拖曳移動、雙指縮放</span></div>`;
+        + gestCard('移動照片','放大縮小')
+        + slider('photoScale','照片大小',0.6,1,0.01)
+        + `<div class="acts"><button type="button" class="btn sm" data-act="resetCrop">重設</button></div>`;
       break;
     case 'frame': {
       const sws = [['#ffffff','白'],['#2a2a2a','深灰'],['#000000','黑']];
@@ -1235,15 +1269,15 @@ function renderPanel(){
         + `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`;
       break;
     case 'pos':
-      h = slider('offY','上下',-15,15,0.1) + slider('offX','左右',-15,15,0.1)
+      h = gestCard('移動文字','文字大小')
         + slider('padScale','邊距',0.2,3,0.05) + slider('gapScale','間距',0.3,3,0.05)
         + slider('lineGap','行距',0.3,2.5,0.05)
-        + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button><span class="hint">在預覽上拖曳移動、雙指縮放文字</span></div>`;
+        + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button></div>`;
       break;
     case 'out': {
       const multi = photos.length > 1, hasGps = p.ex && p.ex.lat != null, jpg = S.outFmt !== 'png';
       h = `<div class="acts"><button type="button" class="btn primary" data-act="dlOne">保存</button><button type="button" class="btn" data-act="share">分享</button>${multi?`<button type="button" class="btn" data-act="dlAll">全部保存（${photos.length}）</button>`:''}${CAN_DIR?`<button type="button" class="btn" data-act="pickDir">資料夾</button>`:''}</div>`
-        + `<div class="row"><label for="sizeR">大小</label><input type="range" id="sizeR" min="0" max="${SIZE_STOPS.length-1}" step="1" value="${sizeIdx()}"><span class="val wide" id="sizeV">${SIZE_NAME[S.outSize]||'原圖'}</span></div>`
+        + `<div class="row"><label for="sizeR">大小</label><input type="range" id="sizeR" min="0" max="${SIZE_STOPS.length-1}" step="1" value="${sizeIdx()}"></div><div class="sizeinfo" id="sizeV">計算中…</div>`
         + `<div class="row"><label>格式</label>` + chips('outFmt', [['jpg','JPG'],['png','PNG']], S.outFmt||'jpg') + `</div>`
         + (jpg ? `<div class="row"><label>EXIF</label><span class="spacer hint">保留拍攝資訊</span><button type="button" class="sw" data-toggle="keepExif" aria-pressed="${!!S.keepExif}" aria-label="保留拍攝資訊"></button></div>` : '')
         + (jpg && S.keepExif && hasGps ? `<div class="row"><label>GPS</label><span class="spacer hint">保留拍攝地點座標</span><button type="button" class="sw" data-toggle="keepGps" aria-pressed="${!!S.keepGps}" aria-label="保留 GPS"></button></div>` : '');
@@ -1347,7 +1381,7 @@ panel.addEventListener('click', async e=>{
   else if (act === 'resetAdj'){ p.adj = {}; p._proc = []; renderPanel(); render(); histPush(); }
   else if (act === 'adjAll'){ photos.forEach(q=>{ q.adj = Object.assign({}, p.adj||{}); q._proc = []; }); toast('已套用到全部照片'); histPush(); }
   else if (act === 'resetCrop'){ Object.assign(p, {zoom:1,panX:0,panY:0}); S.photoScale = 1; save(); renderPanel(); render(); }
-  else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1}); save(); renderPanel(); render(); }
+  else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1,textScale:1}); save(); renderPanel(); render(); }
   else if (act === 'pickDir'){ await pickDir(); renderPanel(); }
   else if (act === 'locAll'){ photos.forEach(q=> q.data.location = p.data.location); toast('已套用到全部照片'); histPush(); }
   else if (act === 'dlOne') download([p]);
@@ -1387,7 +1421,7 @@ panel.addEventListener('input', e=>{
   else if (t.dataset.adj){ const k=t.dataset.adj; adjOf(cur())[k] = +t.value; $('#av_'+k).textContent = fmtA(t.value); const c = panel.querySelector(`[data-adjkey="${k}"]`); if (c){ c.classList.toggle('set', !!+t.value); c.querySelector('i').textContent = +t.value ? fmtA(t.value) : ''; } render(); }
   else if (t.dataset.prange){ const k=t.dataset.prange; cur()[k] = +t.value; $('#pv_'+k).textContent = fmtP(k); render(); }
   else if (t.dataset.range){ const k=t.dataset.range; S[k] = +t.value; $('#v_'+k).textContent = fmtVal(k); save(); render(); }
-  else if (t.id === 'sizeR'){ S.outSize = SIZE_STOPS[+t.value]; save(); $('#sizeV').textContent = SIZE_NAME[S.outSize] + '・…'; estimateSize(); }
+  else if (t.id === 'sizeR'){ S.outSize = SIZE_STOPS[+t.value]; save(); $('#sizeV').textContent = '計算中…'; estimateSize(); }
   else if (t.id === 'authorIn'){ S.author = t.value; save(); render(); }
   else if (t.id === 'quoteIn'){ S.quote = t.value; save(); render(); }
   else if (t.id === 'quoteByIn'){ S.quoteBy = t.value; save(); render(); }
@@ -1498,6 +1532,7 @@ const ext = () => S.outFmt === 'png' ? '.png' : '.jpg';
 const SIZE_STOPS = ['ig','1600','2048','3072','4096','orig'];
 const SIZE_NAME = { ig:'IG 用', '1600':'1600px', '2048':'2048px', '3072':'3072px', '4096':'4096px', orig:'原圖' };
 const sizeIdx = () => Math.max(0, SIZE_STOPS.indexOf(S.outSize||'orig'));
+const fmtMP = (w, h) => { const m = w*h/1e4; return (m >= 100 ? Math.round(m) : Math.round(m*10)/10) + ' 萬畫素'; };
 const fmtMB = n => n >= 1048576 ? (n/1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n/1024)) + ' KB';
 let estTok = 0;
 function estimateSize(){
@@ -1506,7 +1541,7 @@ function estimateSize(){
     if (tok !== estTok || !cur()) return;
     let b = null; try { b = await exportBlob(cur()); } catch(e){}
     const el = document.getElementById('sizeV');
-    if (tok === estTok && el && b) el.textContent = (SIZE_NAME[S.outSize] || '原圖') + '・' + fmtMB(b.size);
+    if (tok === estTok && el && b) el.textContent = (S.outSize === 'orig' ? '原圖・' : S.outSize === 'ig' ? 'IG 用・' : '') + fmtMP(b._w, b._h) + '・' + fmtMB(b.size);
   }, 450);
 }
 async function exportBlob(p){
@@ -1516,7 +1551,7 @@ async function exportBlob(p){
   let sc = 1; const area = p.w*p.h*1.25; if (area > MAX) sc = Math.sqrt(MAX/area);
   const sized = S.outSize && S.outSize !== 'orig';
   const tgt = c => S.outSize === 'ig' ? Math.min(1080/c.width, 1600/Math.max(c.width, c.height)) : (+S.outSize)/Math.max(c.width, c.height);
-  if (sized){ const pr = compose(p, 0.1); sc = Math.min(sc, tgt({ width:pr.width/0.1, height:pr.height/0.1 })); }
+  if (sized){ const pr = compose(p, 0.1), ts = tgt({ width:pr.width/0.1, height:pr.height/0.1 }); if (ts < 1) sc = Math.min(sc, ts*1.02); }
   const type = S.outFmt === 'png' ? 'image/png' : 'image/jpeg';
   const enc = c => new Promise(r=>c.toBlob(r, type, 0.92));
   /* 指定尺寸時精準縮到目標大小 */
@@ -1528,10 +1563,11 @@ async function exportBlob(p){
     const x = o.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, o.width, o.height);
     return o;
   };
-  if (sized) sc *= 1.02;
-  let blob = await enc(fit(compose(p, sc)));
-  if (!blob) blob = await enc(fit(compose(p, sc*0.6)));
-  return blob ? withExif(blob, p) : blob;
+  let cv = fit(compose(p, sc)), blob = await enc(cv);
+  if (!blob){ cv = fit(compose(p, sc*0.6)); blob = await enc(cv); }
+  if (!blob) return blob;
+  const out = await withExif(blob, p); out._w = cv.width; out._h = cv.height;
+  return out;
 }
 const outBase = p => (p.sample ? 'Sample' : p.name) + '_Frame';
 /* 不覆蓋：已存在就改成 _Frame_2、_Frame_3… */
@@ -1664,6 +1700,43 @@ const gEnd = e => {
 };
 ['pointerup','pointercancel'].forEach(ev=>pv.addEventListener(ev, gEnd));
 pv.addEventListener('pointerleave', e=>{ if (!ptrs.has(e.pointerId)) holdOff(); });
+/* 使用說明 */
+function helpHTML(){
+  const G = GROUPS, row = (ic, t, d) => `<div class="hrow"><div class="hic">${ic}</div><div><h3>${t}</h3><p>${d}</p></div></div>`;
+  const mini = (title, svg) => `<figure class="hfig">${svg}<figcaption>${title}</figcaption></figure>`;
+  const phone = inner => `<svg viewBox="0 0 120 150" width="120" height="150" aria-hidden="true"><rect x="10" y="4" width="100" height="142" rx="14" fill="var(--fill)"/><rect x="22" y="18" width="76" height="86" rx="3" fill="#6a7fa8"/><path d="M22 90l20-18 14 12 12-9 30 24v5H22z" fill="#3b2a33"/><circle cx="80" cy="38" r="7" fill="#f4c38a"/><rect x="22" y="104" width="76" height="18" fill="#fff"/><rect x="28" y="110" width="20" height="5" rx="2" fill="#222"/><rect x="58" y="110" width="34" height="5" rx="2" fill="#999"/>${inner}</svg>`;
+  const finger = (x, y) => `<circle cx="${x}" cy="${y}" r="9" fill="var(--accent)" fill-opacity=".35" stroke="var(--accent)" stroke-width="2"/>`;
+  return `
+    <p class="hlead">三個步驟就能完成：選照片、挑版型、保存。</p>
+    <section><h4>開始</h4>
+      ${row(IC('<rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9.5" r="1.5"/>'), '選照片', '點左上「選照片」，可以一次選多張。會自動讀取相機型號、焦段、光圈、快門、ISO 和拍攝時間，iPhone 的 HEIC 也可以。')}
+    </section>
+    <section><h4>底部五個按鈕</h4>
+      ${row(G.tpl.icon, '版型', '挑選相框樣式。點縮圖右上的星號加入最愛，會排在最前面。「我的樣式」可以存下整組設定，一鍵套用。')}
+      ${row(G.photo.icon, '照片', '「比例・裁切」選成品比例並調整構圖；「調色」可調曝光、對比、色溫等，按住預覽可對照原圖。')}
+      ${row(G.look.icon, '外觀', '邊框顏色（含從照片取色）、相機 Logo、字型與文字位置。')}
+      ${row(G.info.icon, '資訊', '修改相機型號、鏡頭、參數、時間、地點、署名。右側開關決定要不要顯示在照片上；有 GPS 的照片可以自動帶入地點。')}
+      ${row(G.save.icon, '保存', '拉動「大小」滑桿選畫素與檔案大小，右邊是原圖，最左邊是 IG 用。多張照片可以「全部保存」。')}
+    </section>
+    <section><h4>用手指調整</h4>
+      <div class="hfigs">
+        ${mini('單指拖曳：移動', phone(finger(60,60) + '<path d="M60 44v-8M60 76v8M44 60h-8M76 60h8" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>'))}
+        ${mini('雙指開合：縮放', phone(finger(46,74) + finger(76,46) + '<path d="M38 82l-8 8M84 38l8-8" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>'))}
+      </div>
+      <p class="hnote">在「照片 → 比例・裁切」調整照片；在「外觀 → 位置」調整文字。</p>
+      ${row(IC('<path d="M8 7h8M8 12h8M8 17h5"/><rect x="4" y="3" width="16" height="18" rx="3"/>'), '點兩下數值歸零', '滑桿右邊的數字點兩下，就會回到預設值。')}
+    </section>
+    <section><h4>小技巧</h4>
+      ${row(IC('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'), '復原／重做', '右上的箭頭可以一步一步退回或重做。')}
+      ${row(IC('<path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'), '安裝到主畫面', 'Android 用 Chrome 選單「安裝應用程式」；iPhone 用 Safari 的分享按鈕「加入主畫面」。安裝後可離線使用。')}
+      ${row(IC('<path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), '保護隱私', '保存時預設會移除 GPS 座標，避免分享照片時透露拍攝地點。')}
+    </section>
+    <p class="hfoot">參數相框 ${APP_VER}</p>`;
+}
+$('#helpBtn').addEventListener('click', ()=>{ $('#helpBody').innerHTML = helpHTML(); $('#help').hidden = false; $('#helpBody').scrollTop = 0; });
+$('#helpClose').addEventListener('click', ()=>{ $('#help').hidden = true; });
+$('#help').addEventListener('click', e=>{ if (e.target.id === 'help') $('#help').hidden = true; });
+document.addEventListener('keydown', e=>{ if (e.key === 'Escape') $('#help').hidden = true; });
 $('#undoBtn').addEventListener('click', ()=>histGo(-1));
 $('#redoBtn').addEventListener('click', ()=>histGo(1));
 $('.mark').addEventListener('click', ()=>toast('參數相框 ' + APP_VER));

@@ -300,12 +300,13 @@ const detectBrand = make => { const m=(make||'').toLowerCase(); const b=BRANDS.f
 const DEF = {
   tpl:'bar4', ratio:'orig', bg:'#ffffff', border:5, barScale:1, radius:0, shadow:false,
   textScale:1, photoScale:1, font:'Jost', weight:'regular', quality:0.92, focalMode:'actual', dateFmt:'full',
-  offX:0, offY:0, padScale:1, lineGap:1, gapScale:1, logoScale:1,
+  spacing:1, logoScale:1,
   textShadow:true, logoShadow:'follow', logoVariant:{}, favs:[], presets:[], modelName:'friendly', keepExif:true, keepGps:false, outSize:'orig', outFmt:'jpg', author:'', authorPrefix:'by', quote:'', quoteBy:'', logoColor:'auto',
   show:{logo:true,model:true,lens:false,focal:true,fnum:true,shutter:true,iso:true,date:true,location:true,author:true,quote:true}
 };
 let S = JSON.parse(JSON.stringify(DEF));
-try { const saved = JSON.parse(localStorage.getItem('exif-frame-settings')||'null'); if (saved) { S = Object.assign(S, saved); S.show = Object.assign({}, DEF.show, saved.show||{}); } } catch(e){}
+try { const saved = JSON.parse(localStorage.getItem('exif-frame-settings')||'null'); if (saved) { S = Object.assign(S, saved); S.show = Object.assign({}, DEF.show, saved.show||{}); if (saved.spacing === undefined && saved.lineGap) S.spacing = saved.lineGap; } } catch(e){}
+['offX','offY','padScale','lineGap','gapScale'].forEach(k=>delete S[k]); // v33 起不再使用
 const save = () => { try { localStorage.setItem('exif-frame-settings', JSON.stringify(S)); } catch(e){} histPush(); };
 /* 復原／重做：記錄整體設定＋目前照片的個別設定 */
 const H = { stack:[], pos:-1, lock:false, t:0 };
@@ -531,7 +532,7 @@ function paletteOf(p){
 }
 
 /* ---------- 我的樣式 ---------- */
-const STYLE_KEYS = ['tpl','ratio','bg','border','barScale','radius','shadow','textScale','photoScale','font','weight','offX','offY','padScale','lineGap','gapScale','logoScale','textShadow','logoShadow','logoVariant','logoColor','authorPrefix','focalMode','dateFmt','modelName','show'];
+const STYLE_KEYS = ['tpl','ratio','bg','border','barScale','radius','shadow','textScale','photoScale','font','weight','spacing','logoScale','textShadow','logoShadow','logoVariant','logoColor','authorPrefix','focalMode','dateFmt','modelName','show'];
 const deep = o => JSON.parse(JSON.stringify(o));
 const styleOf = () => deep(Object.fromEntries(STYLE_KEYS.map(k=>[k, S[k]])));
 function applyStyleRaw(d){ STYLE_KEYS.forEach(k=>{ if (d && d[k] !== undefined) S[k] = deep(d[k]); }); if (!TPL[S.tpl]) S.tpl = 'bar4'; if (!FONT_SPEC.hasOwnProperty(S.font)) S.font = 'Jost'; }
@@ -634,7 +635,7 @@ function font(ctx, l){
 }
 function measure(l){ font(M,l); return M.measureText(l.t).width; }
 function stack(lines, gap=0.38){
-  gap *= S.lineGap;
+  gap *= S.spacing;
   lines = lines.filter(l => l && l.t);
   let w=0, h=0;
   lines.forEach((l,i)=>{ l.w = measure(l); w=Math.max(w,l.w); h += l.size + (i ? l.size*gap : 0); });
@@ -644,7 +645,7 @@ function stack(lines, gap=0.38){
   }};
 }
 function vcol(items, gap){
-  gap *= S.lineGap;
+  gap *= S.spacing;
   items = items.filter(i => i && i.h);
   const H = items.reduce((a,i)=>a+i.h,0) + gap*Math.max(0,items.length-1);
   return { H, draw(ctx, cx, cy){ let y = cy - H/2; items.forEach(i=>{ i.draw(ctx, cx, y + i.h/2); y += i.h + gap; }); } };
@@ -753,7 +754,7 @@ const BAR = { bg:'#ffffff', border:0, radius:0, shadow:false };
 const imgOnly = (P) => (ctx,ox,oy) => drawPhoto(ctx,P,ox,oy,true);
 const TPL = {
   bar4: { name:'底部白條', frame:false, defaults:BAR, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.gapScale, bh=s*0.115*S.barScale, pad=bh*0.42*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.spacing, bh=s*0.115*S.barScale, pad=bh*0.42;
     const logo = logoInfo(p, bh*0.5*T);
     const [r1,r2] = lines2(V, ['author','location','date']);
     const right = stack([{t:r1,size:bh*0.19*T,weight:500,color:C.c1},{t:r2,size:bh*0.16*T,color:C.c1}]);
@@ -769,7 +770,7 @@ const TPL = {
     }};
   }},
   frame2: { name:'白框左右', frame:true, defaults:{ bg:'#ffffff', border:4.5, radius:0, shadow:false }, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.gapScale, b=s*S.border/100, bh=s*0.15*S.barScale, side=Math.max(b, bh*0.3)*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.spacing, b=s*S.border/100, bh=s*0.15*S.barScale, side=Math.max(b, bh*0.3);
     const logo = logoInfo(p, bh*0.44*T);
     const L = stack([{t:V.modelLine,size:bh*0.17*T,weight:600,color:C.c1},{t:V.params(),size:bh*0.15*T,color:C.c1}],0.45);
     const [r1,r2] = lines2(V, ['location','author','date']);
@@ -819,7 +820,7 @@ const TPL = {
     return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+b), info(ctx,ox,oy){ col.draw(ctx, ox+W/2, oy+b+h+bh/2); } };
   }},
   bar3: { name:'三欄白條', frame:false, defaults:BAR, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.gapScale, bh=s*0.12*S.barScale, pad=bh*0.42*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.spacing, bh=s*0.12*S.barScale, pad=bh*0.42;
     const logo = logoInfo(p, bh*0.48*T);
     const [l1,l2] = lines2(V, ['author','location','date']);
     const L = stack([{t:l1,size:bh*0.18*T,weight:500,color:C.c1},{t:l2,size:bh*0.145*T,color:C.c1}],0.5);
@@ -836,7 +837,7 @@ const TPL = {
     }};
   }},
   barDiv: { name:'型號分隔', frame:false, defaults:BAR, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.gapScale, bh=s*0.13*S.barScale, pad=bh*0.42*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.spacing, bh=s*0.13*S.barScale, pad=bh*0.42;
     const logo = logoInfo(p, bh*0.5*T);
     const L = stack([{t:V.modelLine,size:bh*0.2*T,weight:600,ls:0.02,color:C.c1},{t:V.date,size:bh*0.14*T,ls:0.05,color:C.c2}],0.5);
     const R = stack([{t:V.params(),size:bh*0.18*T,weight:600,color:C.c1},{t:[V.location,V.author].filter(Boolean).join('  '),size:bh*0.14*T,ls:0.04,color:C.c2}],0.5);
@@ -851,7 +852,7 @@ const TPL = {
     }};
   }},
   capsule: { name:'參數膠囊', frame:true, defaults:{ bg:'#ffffff', border:5, radius:0, shadow:false }, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.gapScale, b=s*S.border/100, bh=s*0.3*S.barScale;
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, G=S.spacing, b=s*S.border/100, bh=s*0.3*S.barScale;
     const logo = logoInfo(p, bh*0.14*T);
     const ml = {t:V.modelLine, size:bh*0.09*T, weight:600, color:C.c1}, mw = ml.t ? measure(ml) : 0;
     const head = (logo.w || mw) ? { h:Math.max(logo.h, ml.size), draw(ctx,cx,cy){
@@ -891,7 +892,7 @@ const slashParams = V => ['focal','fnum','shutter','iso'].map(k=>V[k]).filter(Bo
 
 Object.assign(TPL, {
   ovCorner: { name:'疊加左下', frame:false, defaults:OV, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, G=S.gapScale, pad=s*0.045*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, G=S.spacing, pad=s*0.045;
     const logo = logoInfo(p, s*0.05*T, true);
     const st = stack([
       {t:[V.author, V.date].filter(Boolean).join(' '), size:s*0.024*T, weight:500, color:C.c1},
@@ -906,8 +907,8 @@ Object.assign(TPL, {
       ctx.restore();
     }};
   }},
-  ovTopBottom: { name:'疊加上下', frame:false, defaults:OV, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.06*S.padScale;
+  ovTopBottom: { name:'疊加上下', frame:false, noSpacing:true, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.06;
     const logo = logoInfo(p, s*0.07*T, true);
     const foot = V.author ? V.author + (S.authorPrefix === '©' ? ' all rights reserved' : '') : V.params();
     const fl = fit({t:foot, size:s*0.024*T, weight:600, color:C.c1}, w*0.9);
@@ -929,7 +930,7 @@ Object.assign(TPL, {
     return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){ ctx.save(); glow(ctx,s); col.draw(ctx, ox+w/2, oy+h/2); ctx.restore(); } };
   }},
   ovMid: { name:'疊加橫排', frame:false, defaults:OV, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.04*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.04;
     const L = stack([{t:V.params(), size:s*0.026*T, weight:500, color:C.c1}, {t:V.modelLine, size:s*0.019*T, color:C.c2}], 0.35);
     const R = stack([{t:V.author, size:s*0.026*T, weight:700, color:C.c1}, {t:[V.location,V.date].filter(Boolean).join(' '), size:s*0.019*T, color:C.c2}], 0.35);
     return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){
@@ -939,8 +940,8 @@ Object.assign(TPL, {
       ctx.restore();
     }};
   }},
-  ov3col: { name:'疊加三欄', frame:false, defaults:OV, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.04*S.padScale, fs=s*0.022*T;
+  ov3col: { name:'疊加三欄', frame:false, noSpacing:true, defaults:OV, layout(p,P){
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, pad=s*0.04, fs=s*0.022*T;
     const mid = stack([{t:V.author.toUpperCase(), size:fs*1.05, weight:700, color:C.c1}, {t:V.params(), size:fs, color:C.c1}], 0.5);
     return { W:w, H:h, photo:imgOnly(P), info(ctx,ox,oy){
       ctx.save(); glow(ctx,s);
@@ -952,7 +953,7 @@ Object.assign(TPL, {
     }};
   }},
   ovItalic: { name:'疊加斜體', frame:true, defaults:{ bg:'#ffffff', border:2, radius:0, shadow:false }, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, b=s*S.border/100, pad=s*0.05*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=WHITE, T=S.textScale, b=s*S.border/100, pad=s*0.05;
     const logo = logoInfo(p, s*0.065*T, true);
     const col = vcol([
       tline({t:[V.location,V.date,V.author].filter(Boolean).join(' '), size:s*0.02*T, italic:true, color:C.c2}),
@@ -977,7 +978,7 @@ Object.assign(TPL, {
     return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+bh), info(ctx,ox,oy){ col.draw(ctx, ox+W/2, oy+bh/2); } };
   }},
   calendar: { name:'月曆', frame:false, defaults:BAR, layout(p,P){
-    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, bh=s*0.36*S.barScale, pad=bh*0.16*S.padScale;
+    const {w,h,s}=P, V=vis(p), C=colors(), T=S.textScale, bh=s*0.36*S.barScale, pad=bh*0.16;
     const [mon, yr] = S.show.date ? monthYear(p) : ['',''];
     const top = stack([{t:mon, size:bh*0.2*T, weight:400, color:C.c1}, {t:yr, size:bh*0.11*T, weight:500, color:'#d0302b'}], 0.25);
     const logo = logoInfo(p, bh*0.24*T);
@@ -987,7 +988,7 @@ Object.assign(TPL, {
       {t:V.location, size:bh*0.08*T, color:C.c1},
       {t:V.author, size:bh*0.08*T, color:C.c1}], 0.4);
     return { W:w, H:h+bh, photo:imgOnly(P), info(ctx,ox,oy){
-      const y0 = oy+h, gap = bh*0.1*S.gapScale;
+      const y0 = oy+h, gap = bh*0.1*S.spacing;
       const LH = top.h + (top.h && logo.h ? gap : 0) + logo.h;
       let y = y0 + bh/2 - LH/2;
       if (top.h){ top.draw(ctx, ox+pad, y+top.h/2, 'left'); y += top.h + gap; }
@@ -1016,7 +1017,7 @@ Object.assign(TPL, {
   }},
   sidePanel: { name:'側欄表格', frame:true, defaults:{ bg:'#ffffff', border:1.5, radius:0, shadow:false }, layout(p,P){
     const {w,h,s}=P, C=colors(), T=S.textScale, b=s*S.border/100, pw=s*0.55*S.barScale;
-    const fs=pw*0.065*T, rh=fs*1.75*S.lineGap, gp=fs*0.9;
+    const fs=pw*0.065*T, rh=fs*1.75*S.spacing, gp=fs*0.9;
     const d=p.data, sh=S.show, g=k=>sh[k]&&d[k]?d[k]:'';
     const groups = [
       [['TakenAt',g('date')],['Location',g('location')]],
@@ -1028,7 +1029,7 @@ Object.assign(TPL, {
     const tableH = groups.reduce((a,gr)=>a+gr.length*rh+gp, 0);
     const W=b+w+pw, H=h+2*b;
     return { W, H, photo:(ctx,ox,oy)=>drawPhoto(ctx,P,ox+b,oy+b), info(ctx,ox,oy){
-      const px=ox+b+w, cx=px+pw*0.42, lg=fs*2.5*S.gapScale;
+      const px=ox+b+w, cx=px+pw*0.42, lg=fs*2.5*S.spacing;
       const total = tableH + (logo.h ? lg + logo.h : 0);
       let y = oy + H*0.6 - total/2; if (y + total > oy+H-b) y = oy+H-b-total; if (y < oy+b) y = oy+b;
       const lineL=px+pw*0.08, lineR=px+pw*0.92;
@@ -1133,7 +1134,7 @@ function compose(p, scale){
   paintBg(ctx, p, FW, FH);
   const ox = (FW-W)/2, oy = (FH-H)/2;
   L.photo(ctx, ox, oy);
-  ctx.save(); ctx.translate(S.offX*P.s/100, S.offY*P.s/100); L.info(ctx, ox, oy); ctx.restore();
+  L.info(ctx, ox, oy);
   c._P = P; c._k = k;
   return c;
 }
@@ -1153,14 +1154,13 @@ function render(){
 }
 
 /* ---------- 介面 ---------- */
-const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-const APP_VER = 'v32';
+const APP_VER = 'v33';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
   tpl:   { name:'版型', icon:IC('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 16h16M8 19h4"/>'), tabs:[['tpl','版型'],['preset','我的樣式']] },
   photo: { name:'照片', icon:IC('<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>'), tabs:[['ratio','比例・裁切'],['adj','調色']] },
-  look:  { name:'外觀', icon:IC('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), tabs:[['frame','邊框'],['logo','Logo'],['font','字型'],['pos','位置']] },
+  look:  { name:'外觀', icon:IC('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), tabs:[['frame','邊框'],['logo','Logo'],['font','字型']] },
   info:  { name:'資訊', icon:IC('<path d="M4 7V4h16v3M9 20h6M12 4v16"/>'), tabs:[['info','資訊']] },
   save:  { name:'保存', icon:IC('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'), tabs:[['out','保存']], primary:true }
 };
@@ -1171,9 +1171,7 @@ const FINGER = (x, y) => `<circle cx="${x}" cy="${y}" r="9" fill="var(--accent)"
 const STROKE = d => `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>`;
 const FIG = {
   drag:      PHONE(FINGER(60,60) + STROKE('M60 44v-8M60 76v8M44 60h-8M76 60h8')),
-  pinch:     PHONE(FINGER(46,74) + FINGER(76,46) + STROKE('M38 82l-8 8M84 38l8-8')),
-  dragText:  PHONE(FINGER(60,113) + STROKE('M60 97v-8M60 129v8M44 113h-8M76 113h8')),
-  pinchText: PHONE(FINGER(42,118) + FINGER(78,108) + STROKE('M33 122l-8 4M87 104l8-4'))
+  pinch:     PHONE(FINGER(46,74) + FINGER(76,46) + STROKE('M38 82l-8 8M84 38l8-8'))
 };
 const figure = (svg, a, b) => `<figure class="hfig">${svg}<figcaption><small>${a}</small><b>${b}</b></figcaption></figure>`;
 const ICO_X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
@@ -1185,11 +1183,11 @@ const chips = (name, opts, curv, num) => `<div class="chips">${opts.map(([v,l])=
 const sw = k => `<button type="button" class="sw" data-show="${k}" aria-pressed="${!!S.show[k]}" aria-label="顯示"></button>`;
 const field = (k, label, ph) => `<div class="row"><label for="f_${k}">${label}</label><input type="text" id="f_${k}" data-field="${k}" value="${esc(cur().data[k])}" placeholder="${ph||''}">${sw(k)}</div>`;
 const slider = (name, label, min, max, step, unit='') => `<div class="row"><label for="r_${name}">${label}</label><input type="range" id="r_${name}" data-range="${name}" min="${min}" max="${max}" step="${step}" value="${S[name]}"><span class="val" id="v_${name}" data-reset="s:${name}">${fmtVal(name)}${unit}</span></div>`;
-const PCT = ['photoScale','barScale','textScale','padScale','lineGap','gapScale','logoScale'];
+const PCT = ['photoScale','barScale','textScale','spacing','logoScale'];
 const pv0 = k => ({zoom:1,panX:0,panY:0})[k];
 const fmtP = k => { const v = cur()[k] ?? pv0(k); return k==='zoom' ? Math.round(v*100)+'%' : (v>0?'+':'')+Math.round(v); };
 const pslider = (k, label, min, max, step) => `<div class="row"><label for="pr_${k}">${label}</label><input type="range" id="pr_${k}" data-prange="${k}" min="${min}" max="${max}" step="${step}" value="${cur()[k] ?? pv0(k)}"><span class="val" id="pv_${k}" data-reset="p:${k}">${fmtP(k)}</span></div>`;
-const fmtVal = n => PCT.includes(n) ? Math.round(S[n]*100)+'%' : n==='quality' ? Math.round(S[n]*100) : n==='offX'||n==='offY' ? (S[n]>0?'+':'')+(+S[n]).toFixed(1) : S[n];
+const fmtVal = n => PCT.includes(n) ? Math.round(S[n]*100)+'%' : n==='quality' ? Math.round(S[n]*100) : S[n];
 
 function renderTabs(){
   const bar = $('#bar'), tabs = $('#tabs'), pnl = $('#panel');
@@ -1291,12 +1289,8 @@ function renderPanel(){
       h = `<div class="row"><label>字體</label><div class="fonts">${FONT_GROUPS.flatMap(([,list])=>list).map(([n])=>`<button type="button" class="fontbtn${S.font===n?' on':''}" data-set="font" data-val="${esc(n)}" aria-label="${esc(n==='system'?'系統字體':n)}"><b style="font-family:${esc(fam(n))}">Aa</b><span>${n==='system'?'系統':esc(n)}</span></button>`).join('')}</div></div>`
         + `<div class="row"><label>粗細</label>` + chips('weight', [['light','細'],['regular','標準'],['bold','粗']], S.weight) + `</div>`
         + slider('textScale','大小',0.6,1.6,0.05)
+        + (TPL[S.tpl].noSpacing ? '' : slider('spacing','間距',0.4,2.5,0.05))
         + `<div class="row"><label>陰影</label><span class="spacer"></span><button type="button" class="sw" data-toggle="textShadow" aria-pressed="${S.textShadow!==false}" aria-label="文字陰影"></button></div>`;
-      break;
-    case 'pos':
-      h = slider('padScale','邊距',0.2,3,0.05) + slider('gapScale','間距',0.3,3,0.05)
-        + slider('lineGap','行距',0.3,2.5,0.05)
-        + `<div class="acts"><button type="button" class="btn sm" data-act="resetPos">重設</button></div>`;
       break;
     case 'out': {
       const multi = photos.length > 1, hasGps = p.ex && p.ex.lat != null, jpg = S.outFmt !== 'png';
@@ -1405,7 +1399,6 @@ panel.addEventListener('click', async e=>{
   else if (act === 'resetAdj'){ p.adj = {}; p._proc = []; renderPanel(); render(); histPush(); }
   else if (act === 'adjAll'){ photos.forEach(q=>{ q.adj = Object.assign({}, p.adj||{}); q._proc = []; }); toast('已套用到全部照片'); histPush(); }
   else if (act === 'resetCrop'){ Object.assign(p, {zoom:1,panX:0,panY:0}); S.photoScale = 1; save(); renderPanel(); render(); }
-  else if (act === 'resetPos'){ Object.assign(S, {offX:0,offY:0,padScale:1,gapScale:1,lineGap:1,textScale:1}); save(); renderPanel(); render(); }
   else if (act === 'pickDir'){ await pickDir(); renderPanel(); }
   else if (act === 'locAll'){ photos.forEach(q=> q.data.location = p.data.location); toast('已套用到全部照片'); histPush(); }
   else if (act === 'dlOne') download([p]);
@@ -1680,12 +1673,12 @@ async function preview(p, blob){
 }
 const holdOn = e => { if (!cur() || !cur().adj || !ADJ.some(([k])=>cur().adj[k])) return; showOrig = true; render(); };
 const holdOff = () => { if (showOrig){ showOrig = false; render(); } };
-/* 預覽手勢：裁切分頁拖曳平移、雙指縮放；位置分頁拖曳文字、雙指調整文字大小 */
+/* 預覽手勢：只在「比例・裁切」分頁，單指拖曳平移、雙指縮放 */
 const ptrs = new Map(); let gst = null;
-const dragMode = () => !group ? null : tab === 'ratio' ? 'crop' : tab === 'pos' ? 'info' : null;
+const dragMode = () => group && tab === 'ratio' ? 'crop' : null;
 function gBase(){
   const p = cur(), pts = [...ptrs.values()];
-  gst = { m:dragMode(), pts:pts.map(q=>({x:q.x, y:q.y})), zoom:p.zoom||1, panX:p.panX||0, panY:p.panY||0, offX:S.offX, offY:S.offY, ts:S.textScale,
+  gst = { m:dragMode(), pts:pts.map(q=>({x:q.x, y:q.y})), zoom:p.zoom||1, panX:p.panX||0, panY:p.panY||0,
           d0: pts.length > 1 ? Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) : 0 };
 }
 pv.addEventListener('pointerdown', e=>{
@@ -1699,15 +1692,10 @@ pv.addEventListener('pointermove', e=>{
   const p = cur(), pts = [...ptrs.values()], kc = pv.width / pv.getBoundingClientRect().width;
   if (pts.length >= 2 && gst.d0){
     const r = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) / gst.d0;
-    if (gst.m === 'crop') p.zoom = Math.min(3, Math.max(1, gst.zoom * r));
-    else S.textScale = Math.min(1.6, Math.max(0.6, gst.ts * r));
+    p.zoom = Math.min(3, Math.max(1, gst.zoom * r));
   } else if (pts.length === 1){
     const dx = (pts[0].x - gst.pts[0].x) * kc, dy = (pts[0].y - gst.pts[0].y) * kc;
-    if (gst.m === 'info'){
-      const sz = lastView ? lastView.P.s : 1000;
-      S.offX = Math.max(-15, Math.min(15, gst.offX + dx/sz*100));
-      S.offY = Math.max(-15, Math.min(15, gst.offY + dy/sz*100));
-    } else if (lastView){
+    if (lastView){
       const P = lastView.P, k = lastView.k || 1, sw = P.crop[2]/k, sh = P.crop[3]/k, spx = sw / P.w;
       const rx = (p.w - sw)/2, ry = (p.h - sh)/2;
       if (rx > 0.5) p.panX = Math.max(-100, Math.min(100, gst.panX - dx*spx/rx*100));
@@ -1735,16 +1723,16 @@ function helpHTML(){
     <section><h4>底部五個按鈕</h4>
       ${row(G.tpl.icon, '版型', '挑選相框樣式。點縮圖右上的星號加入最愛，會排在最前面。「我的樣式」可以存下整組設定，一鍵套用。')}
       ${row(G.photo.icon, '照片', '「比例・裁切」選成品比例並調整構圖；「調色」可調曝光、對比、色溫等，按住預覽可對照原圖。')}
-      ${row(G.look.icon, '外觀', '邊框顏色（含從照片取色）、相機 Logo、字型與文字位置。')}
+      ${row(G.look.icon, '外觀', '邊框顏色（含從照片取色）、相機 Logo、字型、文字大小與間距。')}
       ${row(G.info.icon, '資訊', '修改相機型號、鏡頭、參數、時間、地點、署名。右側開關決定要不要顯示在照片上；有 GPS 的照片可以自動帶入地點。')}
       ${row(G.save.icon, '保存', '拉動「大小」滑桿選畫素與檔案大小，右邊是原圖，最左邊是 IG 用。多張照片可以「全部保存」。')}
     </section>
     <section><h4>用手指調整</h4>
       <div class="hfigs">
-        ${figure(FIG.drag, '單指拖曳', '移動')}
-        ${figure(FIG.pinch, '雙指開合', '縮放')}
+        ${figure(FIG.drag, '單指拖曳', '移動照片')}
+        ${figure(FIG.pinch, '雙指開合', '放大縮小')}
       </div>
-      <p class="hnote">在「照片 → 比例・裁切」調整照片；在「外觀 → 位置」調整文字。</p>
+      <p class="hnote">在「照片 → 比例・裁切」調整照片構圖。</p>
       ${row(IC('<path d="M8 7h8M8 12h8M8 17h5"/><rect x="4" y="3" width="16" height="18" rx="3"/>'), '點兩下數值歸零', '滑桿右邊的數字點兩下，就會回到預設值。')}
     </section>
     <section><h4>小技巧</h4>
@@ -1758,10 +1746,9 @@ $('#helpBtn').addEventListener('click', ()=>{ $('#helpBody').innerHTML = helpHTM
 $('#helpClose').addEventListener('click', ()=>{ $('#help').hidden = true; });
 $('#help').addEventListener('click', e=>{ if (e.target.id === 'help') $('#help').hidden = true; });
 document.addEventListener('keydown', e=>{ if (e.key === 'Escape'){ $('#help').hidden = true; if (!$('#tip').hidden) closeTip(); } });
-/* 手勢說明視窗：第一次進入「比例・裁切」或「位置」時跳出，按 X 關閉後不再出現 */
+/* 手勢說明視窗：第一次進入「比例・裁切」時跳出，按 X 關閉後不再出現 */
 const TIPS = {
-  ratio: { t:'用手指調整照片', f:[[FIG.drag,'單指拖曳','移動照片'],[FIG.pinch,'雙指開合','放大縮小']] },
-  pos:   { t:'用手指調整文字', f:[[FIG.dragText,'單指拖曳','移動文字'],[FIG.pinchText,'雙指開合','文字大小']] }
+  ratio: { t:'用手指調整照片', f:[[FIG.drag,'單指拖曳','移動照片'],[FIG.pinch,'雙指開合','放大縮小']] }
 };
 let tipSeen = {}, tipKey = null;
 try { tipSeen = JSON.parse(localStorage.getItem('pf-tips') || '{}') || {}; } catch(e){}

@@ -79,6 +79,7 @@ button{-webkit-user-select:none;user-select:none}
 .row input[type=text]{flex:1;min-width:0;background:var(--fill);border:0;border-radius:10px;padding:10px 12px;font-size:15px}
 .row input[type=text]::placeholder{color:#636366}
 .row input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:28px}
+.row .val.wide{flex:0 0 auto;min-width:118px}
 .row .val{flex:0 0 42px;text-align:right;font:500 13px var(--num);font-variant-numeric:tabular-nums;color:var(--muted)}
 .label{font-size:13px;color:var(--muted)}
 .hint{font-size:12px;color:var(--muted);margin:0;line-height:1.5}
@@ -1108,7 +1109,7 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-const APP_VER = 'v29';
+const APP_VER = 'v30';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
@@ -1242,9 +1243,8 @@ function renderPanel(){
     case 'out': {
       const multi = photos.length > 1, hasGps = p.ex && p.ex.lat != null, jpg = S.outFmt !== 'png';
       h = `<div class="acts"><button type="button" class="btn primary" data-act="dlOne">保存</button><button type="button" class="btn" data-act="share">分享</button>${multi?`<button type="button" class="btn" data-act="dlAll">全部保存（${photos.length}）</button>`:''}${CAN_DIR?`<button type="button" class="btn" data-act="pickDir">資料夾</button>`:''}</div>`
-        + `<div class="row"><label>尺寸</label>` + chips('outSize', [['orig','原圖'],['2048','2048px'],['ig','IG 用']], S.outSize||'orig') + `</div>`
+        + `<div class="row"><label for="sizeR">大小</label><input type="range" id="sizeR" min="0" max="${SIZE_STOPS.length-1}" step="1" value="${sizeIdx()}"><span class="val wide" id="sizeV">${SIZE_NAME[S.outSize]||'原圖'}</span></div>`
         + `<div class="row"><label>格式</label>` + chips('outFmt', [['jpg','JPG'],['png','PNG']], S.outFmt||'jpg') + `</div>`
-        + (jpg ? slider('quality','品質',0.6,1,0.01) : '')
         + (jpg ? `<div class="row"><label>EXIF</label><span class="spacer hint">保留拍攝資訊</span><button type="button" class="sw" data-toggle="keepExif" aria-pressed="${!!S.keepExif}" aria-label="保留拍攝資訊"></button></div>` : '')
         + (jpg && S.keepExif && hasGps ? `<div class="row"><label>GPS</label><span class="spacer hint">保留拍攝地點座標</span><button type="button" class="sw" data-toggle="keepGps" aria-pressed="${!!S.keepGps}" aria-label="保留 GPS"></button></div>` : '');
       break; }
@@ -1252,6 +1252,7 @@ function renderPanel(){
   el.innerHTML = h;
   if (tab === 'tpl') drawTplThumbs();
   if (tab === 'preset') drawPresetThumbs();
+  if (tab === 'out') estimateSize();
   if (tab === 'font') loadFontPreviews();
   if (tab === 'adj'){ const on = el.querySelector('.adjchip.on'); if (on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); }
 }
@@ -1386,6 +1387,7 @@ panel.addEventListener('input', e=>{
   else if (t.dataset.adj){ const k=t.dataset.adj; adjOf(cur())[k] = +t.value; $('#av_'+k).textContent = fmtA(t.value); const c = panel.querySelector(`[data-adjkey="${k}"]`); if (c){ c.classList.toggle('set', !!+t.value); c.querySelector('i').textContent = +t.value ? fmtA(t.value) : ''; } render(); }
   else if (t.dataset.prange){ const k=t.dataset.prange; cur()[k] = +t.value; $('#pv_'+k).textContent = fmtP(k); render(); }
   else if (t.dataset.range){ const k=t.dataset.range; S[k] = +t.value; $('#v_'+k).textContent = fmtVal(k); save(); render(); }
+  else if (t.id === 'sizeR'){ S.outSize = SIZE_STOPS[+t.value]; save(); $('#sizeV').textContent = SIZE_NAME[S.outSize] + '・…'; estimateSize(); }
   else if (t.id === 'authorIn'){ S.author = t.value; save(); render(); }
   else if (t.id === 'quoteIn'){ S.quote = t.value; save(); render(); }
   else if (t.id === 'quoteByIn'){ S.quoteBy = t.value; save(); render(); }
@@ -1492,27 +1494,41 @@ $('#logoIn').addEventListener('change', e=>{
 
 /* ---------- 輸出 ---------- */
 const ext = () => S.outFmt === 'png' ? '.png' : '.jpg';
+/* 大小滑桿：由左到右 IG（寬 1080）→ 原圖 */
+const SIZE_STOPS = ['ig','1600','2048','3072','4096','orig'];
+const SIZE_NAME = { ig:'IG 用', '1600':'1600px', '2048':'2048px', '3072':'3072px', '4096':'4096px', orig:'原圖' };
+const sizeIdx = () => Math.max(0, SIZE_STOPS.indexOf(S.outSize||'orig'));
+const fmtMB = n => n >= 1048576 ? (n/1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n/1024)) + ' KB';
+let estTok = 0;
+function estimateSize(){
+  const tok = ++estTok;
+  setTimeout(async ()=>{
+    if (tok !== estTok || !cur()) return;
+    let b = null; try { b = await exportBlob(cur()); } catch(e){}
+    const el = document.getElementById('sizeV');
+    if (tok === estTok && el && b) el.textContent = (SIZE_NAME[S.outSize] || '原圖') + '・' + fmtMB(b.size);
+  }, 450);
+}
 async function exportBlob(p){
   /* iPhone / iPad 的畫布上限約 1600 萬像素，超過會輸出失敗 */
   const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const MAX = IOS ? 16e6 : 40e6;
   let sc = 1; const area = p.w*p.h*1.25; if (area > MAX) sc = Math.sqrt(MAX/area);
-  if (S.outSize === '2048' || S.outSize === 'ig'){
-    const pr = compose(p, 0.1), fw = pr.width/0.1, fh = pr.height/0.1;
-    sc = Math.min(sc, S.outSize === 'ig' ? 1080/fw : 2048/Math.max(fw, fh));
-  }
+  const sized = S.outSize && S.outSize !== 'orig';
+  const tgt = c => S.outSize === 'ig' ? Math.min(1080/c.width, 1600/Math.max(c.width, c.height)) : (+S.outSize)/Math.max(c.width, c.height);
+  if (sized){ const pr = compose(p, 0.1); sc = Math.min(sc, tgt({ width:pr.width/0.1, height:pr.height/0.1 })); }
   const type = S.outFmt === 'png' ? 'image/png' : 'image/jpeg';
-  const enc = c => new Promise(r=>c.toBlob(r, type, S.quality));
+  const enc = c => new Promise(r=>c.toBlob(r, type, 0.92));
   /* 指定尺寸時精準縮到目標大小 */
   const fit = c => {
-    if (S.outSize !== '2048' && S.outSize !== 'ig') return c;
-    const t = S.outSize === 'ig' ? 1080/c.width : 2048/Math.max(c.width, c.height);
+    if (!sized) return c;
+    const t = tgt(c);
     if (t >= 1 || Math.abs(t - 1) < 1e-4) return c;
     const o = document.createElement('canvas'); o.width = Math.round(c.width*t); o.height = Math.round(c.height*t);
     const x = o.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, o.width, o.height);
     return o;
   };
-  if (S.outSize === '2048' || S.outSize === 'ig') sc *= 1.02;
+  if (sized) sc *= 1.02;
   let blob = await enc(fit(compose(p, sc)));
   if (!blob) blob = await enc(fit(compose(p, sc*0.6)));
   return blob ? withExif(blob, p) : blob;

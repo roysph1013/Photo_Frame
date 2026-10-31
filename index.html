@@ -438,7 +438,7 @@ function samplePhoto(){
 }
 function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 let sampleMode = false, onboarded = false; // 引導畫面只在第一次出現，之後直接顯示範例照片
-try { onboarded = localStorage.getItem('pf-onboarded') === '1'; } catch(e){}
+try { onboarded = localStorage.getItem('pf-onboarded') === '1' || !!localStorage.getItem('exif-frame-settings'); } catch(e){} // 已經用過（有存過設定）的人也算看過
 async function addFiles(files){
   files = files.filter(f => /^image\//.test(f.type) || isHeic(f));
   if (!files.length) return;
@@ -1155,7 +1155,7 @@ function render(){
 }
 
 /* ---------- 介面 ---------- */
-const APP_VER = 'v34';
+const APP_VER = 'v35';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {

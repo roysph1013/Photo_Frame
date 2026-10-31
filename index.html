@@ -521,29 +521,6 @@ async function fillGps(list){
   renderPanel(); render(); histPush();
 }
 
-/* ---------- 打包 ZIP（不壓縮） ---------- */
-const CRC_T = (()=>{ const t = new Uint32Array(256); for (let n=0; n<256; n++){ let c=n; for (let k=0; k<8; k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n] = c>>>0; } return t; })();
-const crc32 = u => { let c = 0xFFFFFFFF; for (let i=0; i<u.length; i++) c = CRC_T[(c^u[i])&255] ^ (c>>>8); return (c^0xFFFFFFFF)>>>0; };
-function makeZip(files){
-  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
-  const d = new Date(), dt = (d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1), dd = ((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
-  for (const f of files){
-    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
-    const h = new DataView(new ArrayBuffer(30));
-    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(10,dt,true); h.setUint16(12,dd,true);
-    h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true); h.setUint16(26,nm.length,true);
-    parts.push(new Uint8Array(h.buffer), nm, f.data);
-    const c = new DataView(new ArrayBuffer(46));
-    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(12,dt,true); c.setUint16(14,dd,true);
-    c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
-    central.push(new Uint8Array(c.buffer), nm);
-    off += 30 + nm.length + sz;
-  }
-  const cd = central.reduce((a,b)=>a+b.length, 0), e = new DataView(new ArrayBuffer(22));
-  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cd,true); e.setUint32(16,off,true);
-  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type:'application/zip' });
-}
-
 /* ---------- 讀檔：HEIC 與其他格式 ---------- */
 const CDN = { exifr:'https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js', heic:'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js' };
 const scriptP = {};
@@ -1131,7 +1108,7 @@ function render(){
 
 /* ---------- 介面 ---------- */
 const TABS = [['tpl','版型'],['ratio','比例'],['adj','調色'],['frame','邊框'],['pos','位置微調'],['logo','裝置 Logo'],['model','裝置型號'],['params','拍攝參數'],['date','時間'],['loc','地點'],['author','署名'],['font','字型'],['out','輸出']];
-const APP_VER = 'v28';
+const APP_VER = 'v29';
 let tab = 'tpl', logoOpts = false, group = null, infoKey = 'model';
 const IC = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const GROUPS = {
@@ -1264,8 +1241,8 @@ function renderPanel(){
       break;
     case 'out': {
       const multi = photos.length > 1, hasGps = p.ex && p.ex.lat != null, jpg = S.outFmt !== 'png';
-      h = `<div class="acts"><button type="button" class="btn primary" data-act="dlOne">保存</button><button type="button" class="btn" data-act="share">分享</button><button type="button" class="btn" data-act="preview">預覽</button>${multi?`<button type="button" class="btn" data-act="dlAll">全部保存（${photos.length}）</button><button type="button" class="btn" data-act="zip">打包 ZIP</button>`:''}${CAN_DIR?`<button type="button" class="btn" data-act="pickDir">資料夾</button>`:''}</div>`
-        + `<div class="row"><label>尺寸</label>` + chips('outSize', [['orig','原圖'],['2048','長邊 2048'],['ig','IG 1080']], S.outSize||'orig') + `</div>`
+      h = `<div class="acts"><button type="button" class="btn primary" data-act="dlOne">保存</button><button type="button" class="btn" data-act="share">分享</button>${multi?`<button type="button" class="btn" data-act="dlAll">全部保存（${photos.length}）</button>`:''}${CAN_DIR?`<button type="button" class="btn" data-act="pickDir">資料夾</button>`:''}</div>`
+        + `<div class="row"><label>尺寸</label>` + chips('outSize', [['orig','原圖'],['2048','2048px'],['ig','IG 用']], S.outSize||'orig') + `</div>`
         + `<div class="row"><label>格式</label>` + chips('outFmt', [['jpg','JPG'],['png','PNG']], S.outFmt||'jpg') + `</div>`
         + (jpg ? slider('quality','品質',0.6,1,0.01) : '')
         + (jpg ? `<div class="row"><label>EXIF</label><span class="spacer hint">保留拍攝資訊</span><button type="button" class="sw" data-toggle="keepExif" aria-pressed="${!!S.keepExif}" aria-label="保留拍攝資訊"></button></div>` : '')
@@ -1374,7 +1351,6 @@ panel.addEventListener('click', async e=>{
   else if (act === 'locAll'){ photos.forEach(q=> q.data.location = p.data.location); toast('已套用到全部照片'); histPush(); }
   else if (act === 'dlOne') download([p]);
   else if (act === 'dlAll') download(photos);
-  else if (act === 'zip') downloadZip(photos);
   else if (act === 'gpsOne') fillGps([p]);
   else if (act === 'gpsAll') fillGps(photos);
   else if (act === 'presetSave'){ addPreset(nextPresetName(), styleOf()); renderPanel(); toast('已儲存目前樣式'); }
@@ -1540,20 +1516,6 @@ async function exportBlob(p){
   let blob = await enc(fit(compose(p, sc)));
   if (!blob) blob = await enc(fit(compose(p, sc*0.6)));
   return blob ? withExif(blob, p) : blob;
-}
-async function downloadZip(list){
-  const files = [], used = new Set();
-  for (let i=0; i<list.length; i++){
-    toast(`正在打包 ${i+1}/${list.length}…`);
-    const b = await exportBlob(list[i]); if (!b) continue;
-    let n = outBase(list[i]) + ext(), k = 2; while (used.has(n)) n = outBase(list[i]) + '_' + (k++) + ext(); used.add(n);
-    files.push({ name:n, data:new Uint8Array(await b.arrayBuffer()) });
-  }
-  if (!files.length) return toast('沒有可打包的照片');
-  const d = new Date(), name = `Frame_${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}.zip`;
-  const a = document.createElement('a'); a.href = URL.createObjectURL(makeZip(files)); a.download = name;
-  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 8000);
-  toast(`已打包 ${files.length} 張`);
 }
 const outBase = p => (p.sample ? 'Sample' : p.name) + '_Frame';
 /* 不覆蓋：已存在就改成 _Frame_2、_Frame_3… */

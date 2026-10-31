@@ -18,7 +18,7 @@
 - GPS 座標自動帶入地點（OpenStreetMap）
 - 復原／重做，點兩下數值歸零
 - 支援 iPhone HEIC 照片
-- 輸出：原圖／長邊 2048／IG 1080、JPG／PNG、多張打包 ZIP，保留原始 EXIF（GPS 可選）
+- 輸出：原圖／2048px／IG 用（寬 1080）、JPG／PNG，保留原始 EXIF（GPS 可選）
 - 檔名為「原檔名_Frame.jpg」，重複存檔自動編號不覆蓋
 - 支援資料夾存取的瀏覽器可直接存進 Frame 資料夾
 
